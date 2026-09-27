@@ -98,8 +98,9 @@ final class WatchLaterUITests: XCTestCase {
         tap(app, "wl-mark-time")
         app.typeText("12:34")
         tap(app, "wl-mark-text")
-        app.typeText("The bit about window layouts")
-        tap(app, "wl-mark-add")
+        // Return adds the mark — on a phone the keyboard hides the Mark button,
+        // and CI's iPhone failed exactly there when this pressed the button.
+        app.typeText("The bit about window layouts\n")
 
         XCTAssertTrue(waitFor(app, "wl-mark-jump-2"), "the new mark is listed, after 6:52 by its time")
         XCTAssertTrue(absent(app, "wl-mark-missing"), "and the reason is gone")

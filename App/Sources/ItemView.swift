@@ -169,10 +169,13 @@ struct ItemView: View {
                         .focused($focus, equals: .time)
                         .accessibilityIdentifier("wl-mark-time")
                 }
+                // One line, so Return means "mark it" — on the phone the keyboard
+                // covers the Mark button (CI's iPhone found that), and Return is
+                // where the thumb already is.
                 TextField(v.kind.isTimed ? "What is worth keeping here?" : "A quote, or what you think",
-                          text: $markText, axis: .vertical)
+                          text: $markText)
                     .textFieldStyle(.plain).font(Type.body).foregroundStyle(Paper.ink)
-                    .lineLimit(1...4)
+                    .submitLabel(.done)
                     .padding(10)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Paper.card)
                         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Paper.line)))
@@ -187,6 +190,7 @@ struct ItemView: View {
                 if v.kind.isTimed {
                     Text(player.state == .ready ? "Empty time = the second the video is at"
                                                 : "Type the time, like 12:34 or 12")
+                        // On the phone the keyboard covers this button; its ✓ key marks too.
                         .font(Type.small).foregroundStyle(Paper.inkSoft)
                 }
             }

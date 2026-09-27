@@ -51,7 +51,7 @@ enum Guide {
         ("A card's own page",
          "Tap a card's picture or title. A video plays right on the page (a few videos only play on YouTube; then there is a button for that). Under it you can mark moments, write notes and set tags."),
         ("Marks",
-         "Write what is worth keeping and press Mark. With the video playing and the time box empty, the mark takes the second the video is at; or type a time — 12:34, or 12 for twelve minutes. Tap a mark's time to jump back there. On an article a mark is a quote or a thought. Tap a mark's words to change them; the red bin removes it, and Undo brings it back."),
+         "Write what is worth keeping and press Mark — or the ✓ key on the phone's keyboard. With the video playing and the time box empty, the mark takes the second the video is at; or type a time — 12:34, or 12 for twelve minutes. Tap a mark's time to jump back there. On an article a mark is a quote or a thought. Tap a mark's words to change them; the red bin removes it, and Undo brings it back."),
         ("Notes",
          "Each card has room for a longer note. Write in plain text; # makes a heading and - a list, which is how it will look when it goes to Obsidian later. It saves by itself while you type."),
         ("Articles, podcasts, pages",
