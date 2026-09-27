@@ -1,0 +1,139 @@
+# XcodeGen spec — run `xcodegen generate`, then open AMSWatchLater.xcodeproj.
+# One target for the iPhone and the Mac, like AMS Coffee and AMS Packing, plus
+# a share extension on the iPhone so a video is saved from YouTube's share
+# sheet without opening this app.
+name: AMSWatchLater
+options:
+  bundleIdPrefix: com.schabbauer
+  deploymentTarget:
+    iOS: "17.0"
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    DEVELOPMENT_TEAM: D24ENP83QQ
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1"
+    CURRENT_PROJECT_VERSION: "1"
+packages:
+  # The model — everything the app knows about videos, with no screen in it.
+  WatchLaterCore:
+    path: Core
+targets:
+  AMSWatchLater:
+    type: application
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - path: App/Sources
+      - path: App/Resources
+    dependencies:
+      - package: WatchLaterCore
+        product: WatchLaterCore
+      - target: AMSWatchLaterShare
+        platformFilter: iOS
+    entitlements:
+      path: App/Config/AMSWatchLater.entitlements
+      properties:
+        # The Mac app is sandboxed (TestFlight demands it). "user-selected" is
+        # what lets an Open window hand the app the old watchlater.json and a
+        # Save window take a backup anywhere he chooses.
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.files.user-selected.read-write: true
+        # "Add from Safari" on the Mac asks Safari for its front tab.
+        com.apple.security.automation.apple-events: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.schabbauer.AMSWatchLater
+        # A plain build keeps the list on this device only. iCloud is switched
+        # on by building with WATCHLATER_USES_ICLOUD=YES and the iCloud
+        # entitlements file (tools/build.sh … icloud, and the TestFlight
+        # workflow): an ad-hoc signed Mac app carrying iCloud entitlements is
+        # refused at launch, and GitHub's runners have no provisioning profile.
+        WATCHLATER_USES_ICLOUD: "NO"
+        # iPhone only on iOS — portrait by design. The Mac is its own destination.
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        INFOPLIST_FILE: App/Config/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: NO
+    info:
+      path: App/Config/Info.plist
+      properties:
+        CFBundleDisplayName: WatchLater
+        CFBundleName: AMS WatchLater
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleIconName: AppIcon
+        LSApplicationCategoryType: public.app-category.entertainment
+        ITSAppUsesNonExemptEncryption: false
+        # YES only in builds that carry the iCloud entitlements (see settings above).
+        WatchLaterUsesICloud: $(WATCHLATER_USES_ICLOUD)
+        NSAppleEventsUsageDescription: AMS WatchLater asks Safari for the address of the page you are looking at, so one click saves it.
+        # amswatchlater://add?url=… — Raycast and the old Dock button can hand a link over.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.schabbauer.AMSWatchLater
+            CFBundleURLSchemes: [amswatchlater]
+        UILaunchScreen:
+          UIColorName: ""
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+
+  AMSWatchLaterShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: App/Share
+    dependencies:
+      - package: WatchLaterCore
+        product: WatchLaterCore
+    info:
+      path: App/Config/Share-Info.plist
+      properties:
+        CFBundleDisplayName: WatchLater
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        WatchLaterUsesICloud: $(WATCHLATER_USES_ICLOUD)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsWebPageWithMaxCount: 1
+    entitlements:
+      path: App/Config/Share.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.schabbauer.AMSWatchLater]
+    settings:
+      base:
+        WATCHLATER_USES_ICLOUD: "NO"
+        PRODUCT_BUNDLE_IDENTIFIER: com.schabbauer.AMSWatchLater.Share
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: true
+
+  AMSWatchLaterUITests:
+    type: bundle.ui-testing
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - path: UITests
+    dependencies:
+      - target: AMSWatchLater
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.schabbauer.AMSWatchLaterUITests
+        TEST_TARGET_NAME: AMSWatchLater
+
+schemes:
+  AMSWatchLater:
+    build:
+      targets:
+        AMSWatchLater: all
+    test:
+      targets:
+        - AMSWatchLaterUITests
+        # The model's own tests live in the Core package and run with the app's.
+        - package: WatchLaterCore/WatchLaterCoreTests
