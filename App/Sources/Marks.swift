@@ -1,4 +1,5 @@
 import SwiftUI
+import WatchLaterCore
 
 // Hand-drawn marks. No symbol sets, no emoji — a line or two each, so they
 // read at a glance and match the icon.
@@ -231,5 +232,39 @@ struct TagMark: View {
                                     width: r.width * 0.12, height: r.height * 0.12))
             return p
         }
+    }
+}
+
+/// A sheet of paper with three lines of writing — anything you read.
+struct PageMark: View {
+    var size: CGFloat = 18; var weight: CGFloat = 2.2
+    var body: some View { StrokeMark(shape: Sheet(), size: size, weight: weight) }
+    struct Sheet: Shape {
+        func path(in r: CGRect) -> Path {
+            var p = Path()
+            let w = r.width, h = r.height
+            p.move(to: CGPoint(x: r.minX + w * 0.2, y: r.minY + h * 0.08))
+            p.addLine(to: CGPoint(x: r.maxX - w * 0.32, y: r.minY + h * 0.08))
+            p.addLine(to: CGPoint(x: r.maxX - w * 0.2, y: r.minY + h * 0.22))
+            p.addLine(to: CGPoint(x: r.maxX - w * 0.2, y: r.maxY - h * 0.08))
+            p.addLine(to: CGPoint(x: r.minX + w * 0.2, y: r.maxY - h * 0.08))
+            p.closeSubpath()
+            for f in [0.38, 0.55, 0.72] {
+                p.move(to: CGPoint(x: r.minX + w * 0.34, y: r.minY + h * f))
+                p.addLine(to: CGPoint(x: r.maxX - w * (f == 0.72 ? 0.46 : 0.34), y: r.minY + h * f))
+            }
+            return p
+        }
+    }
+}
+
+/// The right placeholder for a kind of thing: play for what plays, a page for
+/// what you read.
+struct KindMark: View {
+    let kind: ItemKind
+    var size: CGFloat = 40
+    var weight: CGFloat = 2.5
+    var body: some View {
+        if kind.isTimed { PlayMark(size: size, weight: weight) } else { PageMark(size: size, weight: weight) }
     }
 }

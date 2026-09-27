@@ -57,6 +57,8 @@ public struct Shelf: Equatable {
     public var tag: String?
     public var search = ""
     public var sort: Sort = .newest
+    /// Only videos, only articles … nil = everything.
+    public var kind: ItemKind?
 
     public init() {}
 
@@ -68,14 +70,17 @@ public struct Shelf: Equatable {
             rows = rows.filter { bucket.fits($0) }
         }
         if togetherOnly { rows = rows.filter { $0.isTogether } }
+        if let k = kind { rows = rows.filter { $0.kind == k } }
         if let c = channel { rows = rows.filter { $0.channel == c } }
         if let t = tag { rows = rows.filter { $0.tags.contains { $0.caseInsensitiveCompare(t) == .orderedSame } } }
         let needle = Shelf.fold(search)
         if !needle.isEmpty {
             rows = rows.filter {
                 Shelf.fold($0.title).contains(needle) || Shelf.fold($0.channel).contains(needle)
-                    || Shelf.fold($0.note).contains(needle)
+                    || Shelf.fold($0.note).contains(needle) || Shelf.fold($0.body).contains(needle)
+                    || Shelf.fold($0.blurb).contains(needle)
                     || $0.tags.contains { Shelf.fold($0).contains(needle) }
+                    || $0.marks.contains { Shelf.fold($0.text).contains(needle) }
             }
         }
         return rows.sorted { a, b in
@@ -105,6 +110,16 @@ public struct Shelf: Equatable {
         let open = library.open
         for b in Bucket.allCases { out[b] = open.filter { b.fits($0) }.count }
         return out
+    }
+
+    /// Which kinds are on the open list, and how many of each — the kind pills
+    /// only appear once there is more than one kind to choose between.
+    public static func kinds(_ library: Library, done showDone: Bool = false) -> [(kind: ItemKind, count: Int)] {
+        let rows = showDone ? library.live.filter { $0.watchedAt != nil } : library.open
+        return ItemKind.allCases.compactMap { k in
+            let n = rows.filter { $0.kind == k }.count
+            return n > 0 ? (k, n) : nil
+        }
     }
 
     public static func shortsCount(_ library: Library) -> Int {

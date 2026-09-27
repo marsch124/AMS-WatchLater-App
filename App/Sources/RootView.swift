@@ -9,6 +9,10 @@ struct RootView: View {
     @State private var plan: [Video]? = nil
     @State private var sheet: Sheet?
     @State private var showSorts = false
+    @State private var opened: Opened?
+
+    /// The card whose page is open.
+    struct Opened: Identifiable { let id: String }
 
     enum Sheet: Identifiable {
         case add, plan, data, guide
@@ -59,6 +63,9 @@ struct RootView: View {
             case .data:  DataSheet()
             case .guide: GuideSheet()
             }
+        }
+        .sheet(item: $opened) { o in
+            ItemView(itemID: o.id).environmentObject(store)
         }
         .onChange(of: store.library) { _, _ in
             // A card that vanished from the list leaves the selection too.
@@ -113,7 +120,8 @@ struct RootView: View {
                     shelf.togetherOnly.toggle(); plan = nil
                 }
             }
-            Pill(title: "Watched", on: shelf.showWatched, identifier: "wl-watched") {
+            Pill(title: "Library", count: store.library.live.filter { $0.watchedAt != nil }.count,
+                 on: shelf.showWatched, identifier: "wl-library") {
                 shelf.showWatched.toggle(); shelf.shortsOnly = false; plan = nil
             }
         }
@@ -149,6 +157,14 @@ struct RootView: View {
             .menuStyle(.button).buttonStyle(.plain)
             .accessibilityIdentifier("wl-sort")
 
+            let kinds = Shelf.kinds(store.library, done: shelf.showWatched)
+            if kinds.count > 1 {
+                Pill(title: "All kinds", on: shelf.kind == nil, identifier: "wl-kind-all") { shelf.kind = nil; plan = nil }
+                ForEach(kinds, id: \.kind) { k in
+                    Pill(title: k.kind.title, count: k.count, on: shelf.kind == k.kind,
+                         identifier: "wl-kind-\(k.kind.rawValue)") { shelf.kind = k.kind; plan = nil }
+                }
+            }
             if let c = shelf.channel {
                 Pill(title: c, on: true, identifier: "wl-channel-clear") { shelf.channel = nil }
             }
@@ -205,7 +221,7 @@ struct RootView: View {
             HStack(spacing: 8) {
                 if let link = Together.link(for: vs), let u = URL(string: link) {
                     Link(destination: u) {
-                        Text("Open as one playlist").font(Type.pill).foregroundStyle(.white)
+                        Text("Open as one playlist").font(Type.pill).foregroundStyle(Paper.onAccent)
                             .padding(.horizontal, 13).padding(.vertical, 9)
                             .background(RoundedRectangle(cornerRadius: 10).fill(Paper.accent))
                     }
@@ -236,7 +252,7 @@ struct RootView: View {
             }
             Button { store.bin(vs); picked = [] } label: {
                 HStack(spacing: 6) { BinMark(size: 15); Text("Remove") }
-                    .font(Type.pill).foregroundStyle(.white)
+                    .font(Type.pill).foregroundStyle(Paper.onAccent)
                     .padding(.horizontal, 13).padding(.vertical, 9)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Paper.danger))
             }
@@ -262,7 +278,8 @@ struct RootView: View {
                                  picked: picked.contains(v.id),
                                  togglePick: { if picked.contains(v.id) { picked.remove(v.id) } else { picked.insert(v.id) } },
                                  pickChannel: { shelf.channel = v.channel; plan = nil },
-                                 pickTag: { shelf.tag = $0; plan = nil })
+                                 pickTag: { shelf.tag = $0; plan = nil },
+                                 open: { opened = Opened(id: v.id) })
                     }
                 }
             }
@@ -272,10 +289,13 @@ struct RootView: View {
     private var emptyNote: some View {
         VStack(spacing: 10) {
             PlayMark(size: 44, weight: 3).foregroundStyle(Paper.accent)
-            Text(store.library.open.isEmpty ? "Nothing waiting." : "Nothing fits here.")
+            Text(shelf.showWatched ? "The Library is empty so far."
+                 : store.library.open.isEmpty ? "Nothing waiting." : "Nothing fits here.")
                 .font(.system(size: 20, weight: .semibold)).foregroundStyle(Paper.ink)
-            Text(store.library.open.isEmpty
-                 ? "Save a video with Add, or share one to WatchLater from YouTube."
+            Text(shelf.showWatched
+                 ? "What you have watched or read lands here, with its marks and notes."
+                 : store.library.open.isEmpty
+                 ? "Save a video, an article or any page with Add, or share one to WatchLater."
                  : "Try a longer slot, or Everything.")
                 .font(Type.body).foregroundStyle(Paper.inkSoft).multilineTextAlignment(.center)
         }
@@ -291,7 +311,7 @@ struct RootView: View {
                     PlusMark(size: 20, weight: 3)
                     Text(store.busy ?? "Add").font(.system(size: 17, weight: .semibold))
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(Paper.onAccent)
                 .padding(.horizontal, 22).padding(.vertical, 13)
                 .background(Capsule().fill(Paper.accent))
             }

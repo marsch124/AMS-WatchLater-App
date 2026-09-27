@@ -1,8 +1,44 @@
 import Foundation
 
-/// One saved video. The field names are the web app's, so its `watchlater.json`
-/// reads straight in — `modifiedAt` is the one addition, and it is what lets
-/// two devices agree on who changed a card last.
+/// What kind of thing a saved link is. Decides the words on the card ("Watched"
+/// or "Read"), whether a mark carries a time, and which picture to show.
+public enum ItemKind: String, Codable, CaseIterable, Identifiable {
+    case video, article, podcast, page
+    public var id: String { rawValue }
+
+    public var title: String {
+        switch self {
+        case .video:   return "Videos"
+        case .article: return "Articles"
+        case .podcast: return "Podcasts"
+        case .page:    return "Pages"
+        }
+    }
+
+    /// Videos and podcasts play; a mark on them remembers a moment.
+    public var isTimed: Bool { self == .video || self == .podcast }
+}
+
+/// A moment worth keeping: "at 12:34 — the bit about sleep". On an article or
+/// a page there is no time, and a mark is a quote or a thought instead.
+public struct Mark: Codable, Identifiable, Equatable, Hashable {
+    public var id: String
+    public var seconds: Int?
+    public var text: String
+    public var createdAt: Date
+
+    public init(id: String = Video.newID(), seconds: Int?, text: String, createdAt: Date = Date()) {
+        self.id = id
+        self.seconds = seconds
+        self.text = text
+        self.createdAt = createdAt
+    }
+}
+
+/// One saved thing — a video, an article, a podcast or any page. (The type keeps
+/// its first name, `Video`, so the file the old app wrote still reads straight in.)
+/// The field names are the web app's; `modifiedAt` is what lets two devices agree
+/// on who changed a card last.
 public struct Video: Codable, Identifiable, Equatable, Hashable {
     public var id: String
     public var videoId: String?
@@ -24,13 +60,31 @@ public struct Video: Codable, Identifiable, Equatable, Hashable {
     public var checkedAt: Date?
     public var goneAt: Date?
     public var tags: [String]
+    /// The one line on the card.
     public var note: String
     public var modifiedAt: Date
 
+    // Since 0.2 — the knowledge-base fields.
+    public var kind: ItemKind
+    /// Moments and quotes, in the order they happen (see `sortedMarks`).
+    public var marks: [Mark]
+    /// The long note: Markdown, as much as he likes.
+    public var body: String
+    /// A page's own picture (og:image). YouTube pictures come from the video id.
+    public var imageURL: String?
+    /// A page's own one-paragraph description (og:description).
+    public var blurb: String
+
     public init(id: String = Video.newID(), videoId: String?, url: String, title: String,
                 channel: String = "", seconds: Int? = nil, savedAt: Date = Date(),
-                isShort: Bool = false, tags: [String] = [], note: String = "") {
+                isShort: Bool = false, tags: [String] = [], note: String = "",
+                kind: ItemKind? = nil) {
         self.id = id
+        self.kind = kind ?? (videoId != nil ? .video : .page)
+        self.marks = []
+        self.body = ""
+        self.imageURL = nil
+        self.blurb = ""
         self.videoId = videoId
         self.url = url
         self.title = title
@@ -73,6 +127,11 @@ public struct Video: Codable, Identifiable, Equatable, Hashable {
         tags = try c.decodeIfPresent([String].self, forKey: .tags) ?? []
         note = try c.decodeIfPresent(String.self, forKey: .note) ?? ""
         modifiedAt = try c.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? savedAt
+        kind = try c.decodeIfPresent(ItemKind.self, forKey: .kind) ?? (videoId != nil ? .video : .page)
+        marks = try c.decodeIfPresent([Mark].self, forKey: .marks) ?? []
+        body = try c.decodeIfPresent(String.self, forKey: .body) ?? ""
+        imageURL = try c.decodeIfPresent(String.self, forKey: .imageURL)
+        blurb = try c.decodeIfPresent(String.self, forKey: .blurb) ?? ""
     }
 
     // MARK: What the card says
@@ -84,6 +143,7 @@ public struct Video: Codable, Identifiable, Equatable, Hashable {
     /// A Short is one saved from a /shorts/ link — or anything a minute or
     /// less, which catches the ones saved before that was recorded.
     public var countsAsShort: Bool {
+        guard kind == .video else { return false }
         if isShort { return true }
         if let s = seconds { return s <= 60 }
         return false
@@ -101,11 +161,41 @@ public struct Video: Codable, Identifiable, Equatable, Hashable {
     public var awaitsAnswer: Bool { isOpen && startedAt != nil && answeredAt == nil }
 
     public var thumbnailURL: URL? {
-        guard let v = videoId else { return nil }
-        return URL(string: "https://i.ytimg.com/vi/\(v)/mqdefault.jpg")
+        if let v = videoId { return URL(string: "https://i.ytimg.com/vi/\(v)/mqdefault.jpg") }
+        return imageURL.flatMap(URL.init(string:))
     }
 
+    /// The name a picture is kept under on this device.
+    public var thumbKey: String { videoId ?? id }
+
     public var watchURL: URL? { URL(string: url) }
+
+    /// Is there anything of HIS on this card — the test for "knowledge".
+    public var hasNotes: Bool {
+        !note.isEmpty || !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !marks.isEmpty
+    }
+
+    /// Timed marks by their moment, then the untimed ones by when he wrote them.
+    public var sortedMarks: [Mark] {
+        marks.sorted { a, b in
+            switch (a.seconds, b.seconds) {
+            case let (x?, y?): return x == y ? a.createdAt < b.createdAt : x < y
+            case (.some, .none): return true
+            case (.none, .some): return false
+            case (.none, .none): return a.createdAt < b.createdAt
+            }
+        }
+    }
+
+    /// The same video, starting at that second. A YouTube link carries `t=`;
+    /// anything else simply opens at the start.
+    public func url(at seconds: Int?) -> URL? {
+        guard let s = seconds, s > 0, let id = videoId else { return watchURL }
+        return URL(string: "https://www.youtube.com/watch?v=\(id)&t=\(s)s")
+    }
+
+    /// Done means Watched for things that play and Read for things to read.
+    public var doneWord: String { kind.isTimed ? "Watched" : "Read" }
 }
 
 /// The whole list, as it sits in the file.

@@ -53,8 +53,15 @@ actor YouTubeClient {
         return YouTube.parsePlaylistPage(html)
     }
 
-    func thumbnail(for id: String) async -> Data? {
-        try? await get("https://i.ytimg.com/vi/\(id)/mqdefault.jpg")
+    /// Any other link: its own meta tags say what it is.
+    func page(_ url: String) async -> Page.Meta? {
+        guard let data = try? await get(url) else { return nil }
+        let html = String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)
+        return Page.parse(html, url: url)
+    }
+
+    func image(_ url: URL) async -> Data? {
+        try? await get(url.absoluteString)
     }
 }
 
@@ -68,12 +75,15 @@ enum Thumbs {
         return f
     }()
 
-    static func url(for id: String) -> URL { folder.appendingPathComponent("\(id).jpg") }
+    static func url(for key: String) -> URL { folder.appendingPathComponent("\(key).jpg") }
 
-    static func have(_ id: String) -> Bool { FileManager.default.fileExists(atPath: url(for: id).path) }
+    static func have(_ key: String) -> Bool { FileManager.default.fileExists(atPath: url(for: key).path) }
 
-    static func fetchIfMissing(_ id: String) async {
-        guard !have(id), let data = await YouTubeClient.shared.thumbnail(for: id), data.count > 500 else { return }
-        try? data.write(to: url(for: id), options: .atomic)
+    /// A card's picture: YouTube's for a video, the page's own for anything else.
+    static func fetchIfMissing(_ item: Video) async {
+        let key = item.thumbKey
+        guard !have(key), let remote = item.thumbnailURL,
+              let data = await YouTubeClient.shared.image(remote), data.count > 500 else { return }
+        try? data.write(to: url(for: key), options: .atomic)
     }
 }

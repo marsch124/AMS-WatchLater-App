@@ -62,7 +62,8 @@ public struct LibraryFile {
             }
         } else {
             let v = Video(videoId: id, url: id.map(YouTube.watchURL) ?? link, title: "",
-                          savedAt: now, isShort: YouTube.isShortLink(link))
+                          savedAt: now, isShort: YouTube.isShortLink(link),
+                          kind: id != nil ? .video : .page)
             lib.items.insert(v, at: 0)
         }
         return write(lib, version: version)

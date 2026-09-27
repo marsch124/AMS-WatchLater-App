@@ -18,6 +18,9 @@ enum Paper {
     static let pair = Color("Pair")
     static let pairSoft = Color("PairSoft")
     static let danger = Color("Danger")
+    /// Text ON a full-colour button: white by day, near-black at night — white
+    /// on the light night-green was too faint to read with glasses off.
+    static let onAccent = Color("OnAccent")
 }
 
 /// Nothing under 15 pt. Glasses may be off.
@@ -76,7 +79,7 @@ struct GoButton: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Paper.onAccent)
                 .padding(.horizontal, 22)
                 .padding(.vertical, 12)
                 .frame(minWidth: 96)

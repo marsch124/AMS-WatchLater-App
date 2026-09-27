@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		07C04E4640839FCCF3DCA139 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63BDC8003370226C1F5888A1 /* Theme.swift */; };
+		09401FC3885CA69979211346 /* ItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2525D2FCE3E90BF03FC51904 /* ItemView.swift */; };
 		0EBEDD0FEE1C22CDABC683C5 /* WatchLaterCore in Frameworks */ = {isa = PBXBuildFile; productRef = BCAF7765063D12D4579EC051 /* WatchLaterCore */; };
 		252723E03656D8EB10339783 /* Sheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E0B4F4B32FE380920F4DF5 /* Sheets.swift */; };
 		297837F6B7EFF42C1243A57F /* WatchLaterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 327C62CDB7E7B796936E223E /* WatchLaterUITests.swift */; };
@@ -22,6 +23,7 @@
 		7D88505A1364F6EE14C263BD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F32F578ADC46452945771CE8 /* Assets.xcassets */; };
 		9C87666DCADF93DD3893B10D /* YouTubeClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3E71EBBEB17FA9051AF8D0E /* YouTubeClient.swift */; };
 		C317A53F834231735B35A3C7 /* AMSWatchLaterShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 22BD89B003CF118F54F5AF3E /* AMSWatchLaterShare.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FD60276AA6B41D6BFDAE1DD2 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4156E4B940F2AEE5844202C7 /* Player.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -60,8 +62,10 @@
 		0B54FCF5C85E2FDA3FFF3055 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		0C5A18771B0B3E45FBA975F9 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		22BD89B003CF118F54F5AF3E /* AMSWatchLaterShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = AMSWatchLaterShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		2525D2FCE3E90BF03FC51904 /* ItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemView.swift; sourceTree = "<group>"; };
 		327C62CDB7E7B796936E223E /* WatchLaterUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLaterUITests.swift; sourceTree = "<group>"; };
 		35C89F614A38620B4F8A4802 /* Core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Core; path = Core; sourceTree = SOURCE_ROOT; };
+		4156E4B940F2AEE5844202C7 /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
 		4A094773FBD6D57EE67E5AA6 /* WatchLaterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLaterApp.swift; sourceTree = "<group>"; };
 		63BDC8003370226C1F5888A1 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		63E0B4F4B32FE380920F4DF5 /* Sheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sheets.swift; sourceTree = "<group>"; };
@@ -99,7 +103,9 @@
 			children = (
 				A00345E5BB52CA1C518444E1 /* CardView.swift */,
 				BB2C7D60DEF084754F482002 /* Guide.swift */,
+				2525D2FCE3E90BF03FC51904 /* ItemView.swift */,
 				C918B1D404B9CA17CE325B22 /* Marks.swift */,
+				4156E4B940F2AEE5844202C7 /* Player.swift */,
 				0C5A18771B0B3E45FBA975F9 /* RootView.swift */,
 				63E0B4F4B32FE380920F4DF5 /* Sheets.swift */,
 				F75E2D37C9399475D78BCFEE /* Store.swift */,
@@ -308,7 +314,9 @@
 			files = (
 				5AC6BB8DB85D77CD6460EC4B /* CardView.swift in Sources */,
 				5A3C72D6F9BC7D04FE4F4EDC /* Guide.swift in Sources */,
+				09401FC3885CA69979211346 /* ItemView.swift in Sources */,
 				44F2A73034F1A991AF2C382D /* Marks.swift in Sources */,
+				FD60276AA6B41D6BFDAE1DD2 /* Player.swift in Sources */,
 				661CAD3E5AAD570D97EDDF62 /* RootView.swift in Sources */,
 				252723E03656D8EB10339783 /* Sheets.swift in Sources */,
 				32D68139595A9037894C1405 /* Store.swift in Sources */,
@@ -480,7 +488,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 0.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -546,7 +554,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 0.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

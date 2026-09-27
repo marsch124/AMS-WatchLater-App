@@ -32,8 +32,10 @@ final class Store: ObservableObject {
 
     init(root: URL? = nil) {
         let args = ProcessInfo.processInfo.arguments
-        isTestRun = args.contains("-uiTesting")
-        offline = isTestRun
+        isTestRun = args.contains("-uiTesting") || args.contains("-scratch")
+        // -scratch: a throwaway list WITH the network — for trying real links
+        // by hand without ever touching his own list.
+        offline = args.contains("-uiTesting")
         let home = root ?? Store.defaultRoot(freshForTests: isTestRun)
         try? FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
         self.root = home
@@ -83,9 +85,18 @@ final class Store: ObservableObject {
             x.id = "seed-\(id)"
             return x
         }
+        var fifteen = v("seedfifteen", "Fifteen minutes of Raycast", "Raycast", 15 * 60, daysAgo: 1)
+        fifteen.marks = [Mark(seconds: 95, text: "Hyper key = Caps Lock"),
+                         Mark(seconds: 412, text: "Snippets with {date}")]
+        var article = Video(videoId: nil, url: "https://example.com/sleep", title: "Why we sleep, in eight minutes",
+                            channel: "The Paper", seconds: 8 * 60, savedAt: Date().addingTimeInterval(-2 * 86_400),
+                            kind: .article)
+        article.id = "seed-article"
+        article.blurb = "What a night of sleep does for memory, and the three habits that help most."
         return Library(items: [
             v("seedfour000", "Four minutes on knots", "Rope Club", 4 * 60, daysAgo: 0),
-            v("seedfifteen", "Fifteen minutes of Raycast", "Raycast", 15 * 60, daysAgo: 1),
+            fifteen,
+            article,
             v("seedfifty00", "Fifty minutes of brain science", "Anders Hansen", 50 * 60, daysAgo: 100),
         ])
     }
@@ -226,19 +237,41 @@ final class Store: ObservableObject {
             v.title = title
             v.channel = m.channel ?? ""
             v.seconds = m.seconds
+        } else if id == nil, !offline {
+            // Anything else with a link: an article, a podcast, a page. A page
+            // that cannot be read is still kept — the link is the knowledge.
+            if let m = await YouTubeClient.shared.page(link) { apply(m, to: &v) }
+            if v.title.isEmpty { v.title = Page.host(of: link) ?? link }
         } else {
             v.title = link
         }
         commit { $0.items.insert(v, at: 0) }
         result.added += 1
-        if let id { Task { await Thumbs.fetchIfMissing(id); thumbTick += 1 } }
+        let saved = v
+        Task { await Thumbs.fetchIfMissing(saved); thumbTick += 1 }
+    }
+
+    private func apply(_ m: Page.Meta, to v: inout Video) {
+        v.kind = m.kind
+        v.title = m.title ?? v.title
+        v.channel = m.site ?? v.channel
+        v.seconds = m.seconds ?? v.seconds
+        v.imageURL = m.imageURL
+        v.blurb = m.blurb ?? ""
     }
 
     /// Cards the share extension saved with only a link get their words now.
     func resolveBare() async {
         guard !offline else { return }
         for v in library.items where v.title.isEmpty && v.deletedAt == nil {
-            guard let id = v.videoId else { stamp(v.id) { $0.title = $0.url }; continue }
+            guard let id = v.videoId else {
+                let m = await YouTubeClient.shared.page(v.url)
+                stamp(v.id) { item in
+                    if let m { self.apply(m, to: &item) }
+                    if item.title.isEmpty { item.title = Page.host(of: item.url) ?? item.url }
+                }
+                continue
+            }
             let m = await YouTubeClient.shared.meta(for: id)
             stamp(v.id) {
                 $0.title = m.title ?? $0.url
@@ -251,8 +284,8 @@ final class Store: ObservableObject {
 
     func fetchThumbs() async {
         guard !offline else { return }
-        for id in library.live.compactMap(\.videoId) where !Thumbs.have(id) {
-            await Thumbs.fetchIfMissing(id)
+        for item in library.live where !Thumbs.have(item.thumbKey) && item.thumbnailURL != nil {
+            await Thumbs.fetchIfMissing(item)
             thumbTick += 1
         }
     }
@@ -325,6 +358,37 @@ final class Store: ObservableObject {
     func setTags(_ v: Video, _ tags: [String]) { stamp(v.id) { $0.tags = YouTube.cleanTags(tags) } }
 
     func setSeconds(_ v: Video, _ seconds: Int?) { stamp(v.id) { $0.seconds = seconds } }
+
+    // MARK: Knowledge — marks and the long note
+
+    /// The card as it is NOW (the view may hold an older copy).
+    func current(_ id: String) -> Video? { library.items.first { $0.id == id } }
+
+    func addMark(to id: String, seconds: Int?, text: String) {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty || seconds != nil else { return }
+        stamp(id) { $0.marks.append(Mark(seconds: seconds, text: t)) }
+    }
+
+    func updateMark(in id: String, _ mark: Mark) {
+        stamp(id) { item in
+            if let i = item.marks.firstIndex(where: { $0.id == mark.id }) { item.marks[i] = mark }
+        }
+    }
+
+    func removeMark(from id: String, _ mark: Mark) {
+        stamp(id) { $0.marks.removeAll { $0.id == mark.id } }
+        say("Mark removed", undo: { [weak self] in
+            self?.stamp(id) { $0.marks.append(mark) }
+        })
+    }
+
+    /// Written as he types would be a file write per letter — the page calls
+    /// this when he pauses, and when it closes.
+    func setBody(_ id: String, _ body: String) {
+        guard current(id)?.body != body else { return }
+        stamp(id) { $0.body = body }
+    }
 
     /// He opened it. The card asks about it when he comes back.
     func started(_ v: Video) {

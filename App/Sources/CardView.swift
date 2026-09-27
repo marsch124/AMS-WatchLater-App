@@ -11,6 +11,7 @@ struct CardView: View {
     let togglePick: () -> Void
     let pickChannel: () -> Void
     let pickTag: (String) -> Void
+    let open: () -> Void
 
     @State private var editingNote = false
     @State private var noteDraft = ""
@@ -20,16 +21,29 @@ struct CardView: View {
     @State private var lengthDraft = ""
 
     private var stale: Bool { video.isStale() }
+
+    /// "3 marks · notes" — what he has added to this card.
+    private var knowledgeLine: String {
+        var parts: [String] = []
+        let n = video.marks.count
+        if n > 0 { parts.append(video.kind.isTimed ? "\(n) mark\(n == 1 ? "" : "s")" : "\(n) kept") }
+        if !video.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { parts.append("notes") }
+        return parts.joined(separator: " · ")
+    }
     private var edge: Color { video.isPinned ? Paper.accent : (stale ? Paper.amber : Paper.line) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             picture
             VStack(alignment: .leading, spacing: 6) {
-                Text(video.title.isEmpty ? video.url : video.title)
-                    .font(Type.cardTitle).foregroundStyle(Paper.ink)
-                    .lineLimit(3).fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("wl-title-\(video.id)")
+                Button(action: open) {
+                    Text(video.title.isEmpty ? video.url : video.title)
+                        .font(Type.cardTitle).foregroundStyle(Paper.ink)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(3).fixedSize(horizontal: false, vertical: true)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("wl-title-\(video.id)")
                 HStack(spacing: 6) {
                     if !video.channel.isEmpty {
                         Button(action: pickChannel) {
@@ -46,6 +60,16 @@ struct CardView: View {
                 if !video.tags.isEmpty || editingTags { tags }
                 Text(Clock.age(of: video)).font(Type.small).foregroundStyle(stale ? Paper.amber : Paper.inkSoft)
                     .accessibilityIdentifier("wl-age-\(video.id)")
+                if !video.marks.isEmpty || !video.body.isEmpty {
+                    Button(action: open) {
+                        HStack(spacing: 6) {
+                            PencilMark().foregroundStyle(Paper.accent)
+                            Text(knowledgeLine).font(Type.small).foregroundStyle(Paper.accentInk)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("wl-knowledge-\(video.id)")
+                }
                 if video.awaitsAnswer { answerRow }
                 if stale && !video.awaitsAnswer { staleRow }
                 actions
@@ -61,16 +85,14 @@ struct CardView: View {
 
     private var picture: some View {
         ZStack(alignment: .bottomTrailing) {
-            Button {
-                if let u = video.watchURL { openURL(u); store.started(video) }
-            } label: {
+            Button(action: open) {
                 ZStack {
                     Rectangle().fill(Paper.shade)
-                    if let id = video.videoId, Thumbs.have(id),
-                       let img = loadImage(Thumbs.url(for: id)) {
+                    if Thumbs.have(video.thumbKey),
+                       let img = loadImage(Thumbs.url(for: video.thumbKey)) {
                         img.resizable().aspectRatio(contentMode: .fill)
                     } else {
-                        PlayMark(size: 40, weight: 2.5).foregroundStyle(Paper.inkSoft)
+                        KindMark(kind: video.kind).foregroundStyle(Paper.inkSoft)
                     }
                 }
                 .frame(height: 150)
@@ -81,7 +103,8 @@ struct CardView: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("wl-open-\(video.id)")
 
-            if let badge = Clock.badge(video.seconds) {
+            if let badge = video.kind.isTimed ? Clock.badge(video.seconds)
+                                              : video.seconds.map({ "\(max(1, $0 / 60)) min read" }) {
                 Text(badge).font(Type.badge).foregroundStyle(.white)
                     .padding(.horizontal, 7).padding(.vertical, 3)
                     .background(RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.75)))
@@ -89,7 +112,7 @@ struct CardView: View {
                     .accessibilityIdentifier("wl-length-\(video.id)")
             } else {
                 Button { lengthDraft = ""; askingLength = true } label: {
-                    Text("How long?").font(Type.badge).foregroundStyle(.white)
+                    Text("How long?").font(Type.badge).foregroundStyle(Paper.onAccent)
                         .padding(.horizontal, 7).padding(.vertical, 3)
                         .background(RoundedRectangle(cornerRadius: 6).fill(Paper.amber))
                         .padding(8)
@@ -120,7 +143,7 @@ struct CardView: View {
             .frame(height: 150)
 
             if video.countsAsShort {
-                Text("SHORT").font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
+                Text("SHORT").font(.system(size: 15, weight: .bold)).foregroundStyle(Paper.onAccent)
                     .padding(.horizontal, 6).padding(.vertical, 2)
                     .background(RoundedRectangle(cornerRadius: 5).fill(Paper.pair))
                     .padding(8)
@@ -137,7 +160,7 @@ struct CardView: View {
                                        id: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             mark()
-                .foregroundStyle(on ? .white : Paper.ink)
+                .foregroundStyle(on ? Paper.onAccent : Paper.ink)
                 .frame(width: 30, height: 30)
                 .background(Circle().fill(on ? tint : Paper.card.opacity(0.92)))
         }
@@ -248,7 +271,7 @@ struct CardView: View {
         HStack(spacing: 8) {
             if video.isOpen {
                 Button { store.setWatched(video, true) } label: {
-                    HStack(spacing: 6) { TickMark(size: 15); Text("Watched") }
+                    HStack(spacing: 6) { TickMark(size: 15); Text(video.doneWord) }
                         .font(Type.pill).foregroundStyle(Paper.accentInk)
                         .padding(.horizontal, 12).padding(.vertical, 8)
                         .background(Capsule().fill(Paper.accentSoft))

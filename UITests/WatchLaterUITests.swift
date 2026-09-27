@@ -35,11 +35,22 @@ final class WatchLaterUITests: XCTestCase {
 
     /// Taps once it is there and hittable; a control that is on screen but
     /// reports itself unhittable is tapped where it is.
+    /// A control below the fold exists but is not hittable, and a tap at its
+    /// coordinate lands off screen and does nothing (test 3 found that out) —
+    /// so scroll until it is really there, and only then tap.
     private func tap(_ app: XCUIApplication, _ id: String, timeout: TimeInterval = 20, line: UInt = #line) {
         let deadline = Date().addingTimeInterval(timeout)
+        var scrolls = 0
         while Date() < deadline {
             if let e = element(app, id) {
-                if e.isHittable { e.tap() } else { e.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
+                if e.isHittable { e.tap(); return }
+                if scrolls < 12 {
+                    let scroll = app.scrollViews.firstMatch
+                    if scroll.exists { scroll.swipeUp(velocity: .slow) } else { app.swipeUp() }
+                    scrolls += 1
+                    continue
+                }
+                e.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
                 return
             }
             usleep(200_000)
@@ -70,5 +81,27 @@ final class WatchLaterUITests: XCTestCase {
         tap(app, "wl-bucket-twenty")
         XCTAssertTrue(waitFor(app, "wl-open-seed-seedfifteen"), "twenty minutes takes the fifteen back in")
         XCTAssertTrue(absent(app, "wl-open-seed-seedfifty00"))
+    }
+
+    /// Test 3 — the knowledge base's first brick: open a card, mark a moment,
+    /// and the mark is there, at its time, beside the two it already had.
+    func testMarkingAMomentKeepsIt() {
+        let app = launch(seeded: true)
+        tap(app, "wl-open-seed-seedfifteen")
+        XCTAssertTrue(waitFor(app, "wl-mark-jump-1"), "the page shows the two seeded marks")
+        XCTAssertTrue(absent(app, "wl-mark-jump-2"))
+
+        // Pressed with nothing in it, the button says what is missing.
+        tap(app, "wl-mark-add")
+        XCTAssertTrue(waitFor(app, "wl-mark-missing"), "an empty mark is refused with a reason")
+
+        tap(app, "wl-mark-time")
+        app.typeText("12:34")
+        tap(app, "wl-mark-text")
+        app.typeText("The bit about window layouts")
+        tap(app, "wl-mark-add")
+
+        XCTAssertTrue(waitFor(app, "wl-mark-jump-2"), "the new mark is listed, after 6:52 by its time")
+        XCTAssertTrue(absent(app, "wl-mark-missing"), "and the reason is gone")
     }
 }
