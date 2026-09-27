@@ -108,9 +108,10 @@ jobs:
           for platform in iOS macOS; do
             echo "=== $platform"
             # -allowProvisioningUpdates lets Apple register the bundle identifier,
-            # its iCloud container and the app group on the first run. The share
-            # extension takes its own entitlements file; the app takes the
-            # iCloud one (the plain file is for local, unsigned builds).
+            # its iCloud container and the app group on the first run.
+            # WL_ENT=-iCloud points the app AND the share extension at their
+            # *-iCloud.entitlements; without it (build 6) the shipped app had no
+            # iCloud entitlement and quietly kept the list on the device.
             xcodebuild archive \
               -project AMSWatchLater.xcodeproj \
               -scheme AMSWatchLater \
@@ -123,6 +124,7 @@ jobs:
               DEVELOPMENT_TEAM="$TEAM_ID" \
               CODE_SIGN_STYLE=Automatic \
               WATCHLATER_USES_ICLOUD=YES \
+              WL_ENT=-iCloud \
               MARKETING_VERSION="$APP_VERSION" \
               CURRENT_PROJECT_VERSION="$BUILD" \
               2>&1 | tee "build/archive-$platform.log" | grep -E "error:|\*\* ARCHIVE" || true

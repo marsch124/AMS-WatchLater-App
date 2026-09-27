@@ -32,26 +32,22 @@ targets:
         product: WatchLaterCore
       - target: AMSWatchLaterShare
         platformFilter: iOS
-    entitlements:
-      path: App/Config/AMSWatchLater.entitlements
-      properties:
-        # The Mac app is sandboxed (TestFlight demands it). "user-selected" is
-        # what lets an Open window hand the app the old watchlater.json and a
-        # Save window take a backup anywhere he chooses.
-        com.apple.security.app-sandbox: true
-        com.apple.security.network.client: true
-        com.apple.security.files.user-selected.read-write: true
-        # "Add from Safari" on the Mac asks Safari for its front tab.
-        com.apple.security.automation.apple-events: true
+    # Entitlements are chosen by CODE_SIGN_ENTITLEMENTS below (WL_ENT switch). No
+    # `entitlements:` block here — xcodegen would write its own setting over it.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.schabbauer.AMSWatchLater
         # A plain build keeps the list on this device only. iCloud is switched
-        # on by building with WATCHLATER_USES_ICLOUD=YES and the iCloud
-        # entitlements file (tools/build.sh … icloud, and the TestFlight
-        # workflow): an ad-hoc signed Mac app carrying iCloud entitlements is
-        # refused at launch, and GitHub's runners have no provisioning profile.
+        # on by building with WATCHLATER_USES_ICLOUD=YES and WL_ENT=-iCloud,
+        # which points BOTH targets (app and share extension) at their
+        # *-iCloud.entitlements files (tools/build.sh … icloud, and the
+        # TestFlight workflow). An ad-hoc signed Mac app carrying iCloud
+        # entitlements is refused at launch, and GitHub's runners have no
+        # provisioning profile — hence the switch.
+        # 🚨 Build 6 shipped WITHOUT this switch and stored his list locally.
         WATCHLATER_USES_ICLOUD: "NO"
+        WL_ENT: ""
+        CODE_SIGN_ENTITLEMENTS: App/Config/AMSWatchLater$(WL_ENT).entitlements
         # iPhone only on iOS — portrait by design. The Mac is its own destination.
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -103,13 +99,11 @@ targets:
               NSExtensionActivationSupportsText: true
               NSExtensionActivationSupportsWebURLWithMaxCount: 1
               NSExtensionActivationSupportsWebPageWithMaxCount: 1
-    entitlements:
-      path: App/Config/Share.entitlements
-      properties:
-        com.apple.security.application-groups: [group.com.schabbauer.AMSWatchLater]
     settings:
       base:
         WATCHLATER_USES_ICLOUD: "NO"
+        WL_ENT: ""
+        CODE_SIGN_ENTITLEMENTS: App/Config/Share$(WL_ENT).entitlements
         PRODUCT_BUNDLE_IDENTIFIER: com.schabbauer.AMSWatchLater.Share
         GENERATE_INFOPLIST_FILE: NO
         SKIP_INSTALL: true

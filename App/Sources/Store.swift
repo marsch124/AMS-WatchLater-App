@@ -43,8 +43,22 @@ final class Store: ObservableObject {
             file.write(Store.seed(), version: Guide.appVersion)
         }
         reload()
+        adoptLocalListIfCloudIsEmpty()
         backUpDaily()
         watchForChanges()
+    }
+
+    /// Build 6 kept the list on the device (it shipped without the iCloud
+    /// entitlement). The first build that CAN see iCloud finds that list here
+    /// and carries it over, so nothing he imported has to be imported twice.
+    private func adoptLocalListIfCloudIsEmpty() {
+        guard !isTestRun, syncPlace == "iCloud Drive", library.live.isEmpty else { return }
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("AMSWatchLater", isDirectory: true)
+        let local = LibraryFile(url: support.appendingPathComponent("watchlater.json")).read()
+        guard !local.live.isEmpty else { return }
+        library = file.write(local, version: Guide.appVersion)
+        say("Moved \(local.live.count) videos into iCloud")
     }
 
     private static func defaultRoot(freshForTests: Bool) -> URL {

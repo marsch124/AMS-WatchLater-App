@@ -36,7 +36,7 @@ fi
 
 if [ "${3:-}" = "icloud" ]; then
   EXTRA+=(-allowProvisioningUpdates -allowProvisioningDeviceRegistration
-          CODE_SIGN_ENTITLEMENTS=App/Config/AMSWatchLater-iCloud.entitlements
+          WL_ENT=-iCloud
           WATCHLATER_USES_ICLOUD=YES)
 fi
 

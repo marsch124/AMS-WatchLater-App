@@ -348,7 +348,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = App/Config/AMSWatchLater.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "App/Config/AMSWatchLater$(WL_ENT).entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Config/Info.plist;
@@ -365,13 +365,14 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				TARGETED_DEVICE_FAMILY = 1;
 				WATCHLATER_USES_ICLOUD = NO;
+				WL_ENT = "";
 			};
 			name = Release;
 		};
 		1B4022B89D2A977DC320FEFD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = App/Config/Share.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "App/Config/Share$(WL_ENT).entitlements";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "App/Config/Share-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -384,6 +385,7 @@
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				WATCHLATER_USES_ICLOUD = NO;
+				WL_ENT = "";
 			};
 			name = Release;
 		};
@@ -411,7 +413,7 @@
 		B9BA9500CB5985211F7389CE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = App/Config/Share.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "App/Config/Share$(WL_ENT).entitlements";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "App/Config/Share-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -424,6 +426,7 @@
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				WATCHLATER_USES_ICLOUD = NO;
+				WL_ENT = "";
 			};
 			name = Debug;
 		};
@@ -580,7 +583,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = App/Config/AMSWatchLater.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "App/Config/AMSWatchLater$(WL_ENT).entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Config/Info.plist;
@@ -597,6 +600,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				TARGETED_DEVICE_FAMILY = 1;
 				WATCHLATER_USES_ICLOUD = NO;
+				WL_ENT = "";
 			};
 			name = Debug;
 		};
