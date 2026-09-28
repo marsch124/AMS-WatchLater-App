@@ -24,6 +24,15 @@ enum Guide {
 
     /// Newest first. Every release adds an entry — never edits an old one.
     static let releases: [Release] = [
+        Release(version: "0.7", date: "2026-09-28",
+                headline: "Your knowledge in Obsidian",
+                lines: [
+                    "Settings › Obsidian and other apps: choose your vault once, then Export to Obsidian writes a folder called WatchLater into it — one note per card with its link, dates, tags, summary, key points, marks and notes, one note per topic, and an index.",
+                    "Marks become times you can click: they open YouTube at that second. Connected cards and topics become [[links]], so Obsidian's graph and backlinks work.",
+                    "A note you change in Obsidian is never replaced by a later export, and nothing is ever deleted.",
+                    "Send to Obsidian on a card's page sends just that card.",
+                    "Spreadsheet writes everything as a CSV file for Numbers or Excel. Add links from a file adds every link in a text or CSV file.",
+                ]),
         Release(version: "0.6", date: "2026-09-28",
                 headline: "Learn more from what you saved",
                 lines: [
@@ -107,6 +116,10 @@ enum Guide {
          "Save this search keeps what you typed as a chip at the top of Find, on both devices. Tap a chip to run it again. While it is chosen, a small red cross removes it; Undo brings it back."),
         ("What was said",
          "YouTube only gives subtitles to its own player, so the app plays each video once in a tiny, silent, invisible player with subtitles on and keeps the text. It does this by itself, one video at a time, while the app is open — the list does not change. Videos without subtitles are tried again after a week. The text is kept beside your list in iCloud, so the other device has it too. Settings › What was said shows how many videos have it; tap it to look again now."),
+        ("Obsidian",
+         "Settings › Obsidian vault: choose the vault folder once on each device (the Mac and the iPhone each remember their own). Export to Obsidian writes a folder called WatchLater in it: a note per card — link, channel, dates and tags at the top, then the summary, key points, questions, marks (each a link to that second in the video), your notes and the connected cards — plus a note per topic and an index called WatchLater. Export again whenever you like: only what changed is written. A note you have changed in Obsidian is left as it is, and the app never deletes anything. Send to Obsidian on a card's page sends just that card."),
+        ("Spreadsheet and files",
+         "Spreadsheet writes every card as a CSV file that Numbers and Excel open. Back up now writes the whole list as watchlater.json, and Import watchlater.json reads one back — a backup, or the old app's file. Add links from a file adds every link in a text or CSV file, the same as pasting them into Add."),
         ("Look again",
          "Marks you wrote come back in the Library, one at a time, a few a day, starting a day after you wrote them. I remember sends a mark further off each time — three days, a week, three weeks, two months, half a year. Again brings it back tomorrow. Watch it again jumps to that moment in the video."),
         ("Learn",

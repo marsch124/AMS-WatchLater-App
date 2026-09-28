@@ -14,6 +14,7 @@
 		297837F6B7EFF42C1243A57F /* WatchLaterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 327C62CDB7E7B796936E223E /* WatchLaterUITests.swift */; };
 		32D68139595A9037894C1405 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = F75E2D37C9399475D78BCFEE /* Store.swift */; };
 		3387B873C965DF3719A637AC /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B54FCF5C85E2FDA3FFF3055 /* ShareViewController.swift */; };
+		39267DC6D99BEB3FEDF4CBF2 /* Obsidian.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558D91D9B5A8E0F76E126539 /* Obsidian.swift */; };
 		44F2A73034F1A991AF2C382D /* Marks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C918B1D404B9CA17CE325B22 /* Marks.swift */; };
 		4800FF38B2F973879F2A8A91 /* Tabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DA7243FB1A6D23205013DF6 /* Tabs.swift */; };
 		5A3C72D6F9BC7D04FE4F4EDC /* Guide.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C7D60DEF084754F482002 /* Guide.swift */; };
@@ -72,6 +73,7 @@
 		35C89F614A38620B4F8A4802 /* Core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Core; path = Core; sourceTree = SOURCE_ROOT; };
 		4156E4B940F2AEE5844202C7 /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
 		4A094773FBD6D57EE67E5AA6 /* WatchLaterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLaterApp.swift; sourceTree = "<group>"; };
+		558D91D9B5A8E0F76E126539 /* Obsidian.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Obsidian.swift; sourceTree = "<group>"; };
 		63BDC8003370226C1F5888A1 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		63E0B4F4B32FE380920F4DF5 /* Sheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sheets.swift; sourceTree = "<group>"; };
 		858F086709B91534488E4363 /* Glyphs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glyphs.swift; sourceTree = "<group>"; };
@@ -116,6 +118,7 @@
 				BB2C7D60DEF084754F482002 /* Guide.swift */,
 				2525D2FCE3E90BF03FC51904 /* ItemView.swift */,
 				C918B1D404B9CA17CE325B22 /* Marks.swift */,
+				558D91D9B5A8E0F76E126539 /* Obsidian.swift */,
 				4156E4B940F2AEE5844202C7 /* Player.swift */,
 				0C5A18771B0B3E45FBA975F9 /* RootView.swift */,
 				63E0B4F4B32FE380920F4DF5 /* Sheets.swift */,
@@ -332,6 +335,7 @@
 				5A3C72D6F9BC7D04FE4F4EDC /* Guide.swift in Sources */,
 				09401FC3885CA69979211346 /* ItemView.swift in Sources */,
 				44F2A73034F1A991AF2C382D /* Marks.swift in Sources */,
+				39267DC6D99BEB3FEDF4CBF2 /* Obsidian.swift in Sources */,
 				FD60276AA6B41D6BFDAE1DD2 /* Player.swift in Sources */,
 				661CAD3E5AAD570D97EDDF62 /* RootView.swift in Sources */,
 				252723E03656D8EB10339783 /* Sheets.swift in Sources */,
@@ -508,7 +512,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.6;
+				MARKETING_VERSION = 0.7;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -574,7 +578,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.6;
+				MARKETING_VERSION = 0.7;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

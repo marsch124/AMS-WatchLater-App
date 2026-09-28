@@ -52,6 +52,8 @@ final class Store: ObservableObject {
         transcriptShelf = TranscriptShelf(folder: home.appendingPathComponent("Transcripts", isDirectory: true))
         fetcher = TranscriptFetcher(shelf: transcriptShelf)
         syncPlace = home.path.contains("Mobile Documents") ? "iCloud Drive" : "This device"
+        // A UI test exports into a throwaway vault inside the test's own folder.
+        if isTestRun { ObsidianShelf.testVault = home.appendingPathComponent("Vault", isDirectory: true) }
         if isTestRun, args.contains("-seed") {
             file.write(Store.seed(), version: Guide.appVersion)
             transcriptShelf.write(Store.seedTranscript())
@@ -469,6 +471,27 @@ final class Store: ObservableObject {
             self?.stamp(id) { $0.marks.append(mark) }
         })
     }
+
+    // MARK: In and out
+
+    /// The last Obsidian export: what happened, or why it did not.
+    @Published var obsidianReport: ObsidianShelf.Report?
+    @Published var obsidianTrouble: String?
+
+    func exportToObsidian(only card: Video? = nil) {
+        obsidianTrouble = nil
+        do {
+            let r = try ObsidianShelf.export(library, only: card)
+            obsidianReport = r
+            say(card == nil ? r.line : (r.written > 0 ? "Sent to Obsidian" : "Already in Obsidian"))
+        } catch {
+            obsidianReport = nil
+            obsidianTrouble = error.localizedDescription
+            say(error.localizedDescription)
+        }
+    }
+
+    func spreadsheet() -> Data { Data(Spreadsheet.csv(library).utf8) }
 
     // MARK: Learning more
 

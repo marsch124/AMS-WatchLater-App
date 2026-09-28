@@ -225,4 +225,14 @@ final class WatchLaterUITests: XCTestCase {
         XCTAssertTrue(tap(app, "wl-review-finish", bringing: "wl-screen-library"))
         XCTAssertTrue(waitForAbsence(app, "wl-review-start"), "nothing more to look again at today")
     }
+
+    /// Test 8 — In/out: Export to Obsidian writes the notes (into a throwaway
+    /// vault in a test run); a second export finds nothing new to write.
+    func testExportToObsidianWritesOnceThenKeepsStill() {
+        let app = launch(seeded: true)
+        tap(app, "tab-settings")
+        XCTAssertTrue(tap(app, "wl-set-obsidian", bringing: "wl-obsidian-written"), "the notes are written")
+        tap(app, "wl-set-obsidian")
+        XCTAssertTrue(waitFor(app, "wl-obsidian-nothing"), "the same list again: nothing new to write")
+    }
 }

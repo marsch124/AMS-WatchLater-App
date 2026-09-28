@@ -516,6 +516,14 @@ struct ItemView: View {
             .padding(10)
             .background(RoundedRectangle(cornerRadius: 12).fill(Paper.card)
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Paper.line)))
+            if ObsidianShelf.folderName != nil {
+                QuietButton(identifier: "wl-item-obsidian") {
+                    store.setBody(itemID, body_)
+                    if let now = store.current(itemID) { store.exportToObsidian(only: now) }
+                } label: {
+                    HStack(spacing: 6) { Glyph(art: GlyphArt.exportOut, size: 16).foregroundStyle(Paper.accent); Text("Send to Obsidian") }
+                }
+            }
         }
     }
 

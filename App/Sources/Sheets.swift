@@ -154,7 +154,7 @@ struct PlanSheet: View {
 }
 
 struct JSONFile: FileDocument {
-    static var readableContentTypes: [UTType] { [.json] }
+    static var readableContentTypes: [UTType] { [.json, .commaSeparatedText] }
     var data: Data
     init(data: Data) { self.data = data }
     init(configuration: ReadConfiguration) throws { data = configuration.file.regularFileContents ?? Data() }

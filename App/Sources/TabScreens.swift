@@ -482,12 +482,17 @@ struct FindTab: View {
 
 struct SettingsTab: View {
     @EnvironmentObject private var store: Store
-    @State private var importing = false
-    @State private var exporting = false
+    @State private var picking: Picking?
+    @State private var saving: Saving?
     @State private var report: String?
     @State private var page: Page?
+    @State private var vaultName = ObsidianShelf.folderName
 
     enum Page: String, Identifiable { case how, new, share; var id: String { rawValue } }
+    /// One file picker for everything that reads a file (SwiftUI honours only
+    /// one per screen).
+    enum Picking { case backup, vault, links }
+    enum Saving { case backup, spreadsheet }
 
     var body: some View {
         TabScreen {
@@ -503,12 +508,42 @@ struct SettingsTab: View {
                 SaidRow(fetcher: store.fetcher)
                 SettingsRow(art: GlyphArt.exportOut, title: "Back up now",
                             value: "\(store.backups().count) safety cop\(store.backups().count == 1 ? "y" : "ies")",
-                            identifier: "wl-export") { exporting = true }
-                SettingsRow(art: GlyphArt.importIn, title: "Import watchlater.json", value: "old app",
-                            identifier: "wl-import") { importing = true }
+                            identifier: "wl-export") { saving = .backup }
+                SettingsRow(art: GlyphArt.importIn, title: "Import watchlater.json", value: "backup or old app",
+                            identifier: "wl-import") { picking = .backup }
             }
             if let report {
                 Text(report).font(Type.body).foregroundStyle(Paper.accentInk).accessibilityIdentifier("wl-data-report")
+            }
+
+            SectionTitle(text: "Obsidian and other apps")
+            SettingsGroup {
+                SettingsRow(art: GlyphArt.book, title: "Obsidian vault", value: vaultName ?? "Choose…",
+                            identifier: "wl-set-vault") { picking = .vault }
+                SettingsRow(art: GlyphArt.exportOut, title: "Export to Obsidian", value: "a note per card",
+                            identifier: "wl-set-obsidian") {
+                    if vaultName == nil { picking = .vault } else { store.exportToObsidian() }
+                }
+                SettingsRow(art: GlyphArt.exportOut, title: "Spreadsheet", value: "CSV for Numbers or Excel",
+                            identifier: "wl-set-csv") { saving = .spreadsheet }
+                SettingsRow(art: GlyphArt.importIn, title: "Add links from a file", value: "text or CSV",
+                            identifier: "wl-set-links") { picking = .links }
+            }
+            if let r = store.obsidianReport {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(r.line).font(Type.body).foregroundStyle(Paper.accentInk)
+                        .accessibilityIdentifier(r.written > 0 ? "wl-obsidian-written" : "wl-obsidian-nothing")
+                    if !r.keptHis.isEmpty {
+                        Text("Changed in Obsidian, so not replaced: " + r.keptHis.prefix(5).joined(separator: ", ")
+                             + (r.keptHis.count > 5 ? " …" : ""))
+                            .font(Type.small).foregroundStyle(Paper.inkSoft)
+                    }
+                }
+            } else if let t = store.obsidianTrouble {
+                Text(t).font(Type.body).foregroundStyle(Paper.amber).accessibilityIdentifier("wl-obsidian-trouble")
+            } else {
+                Text("The notes go into a folder called WatchLater in your vault: one per card with its summary, marks and notes, one per topic, and an index. A note you change in Obsidian is never replaced, and nothing is ever deleted.")
+                    .font(Type.small).foregroundStyle(Paper.inkSoft)
             }
 
             SectionTitle(text: "Saving")
@@ -526,17 +561,47 @@ struct SettingsTab: View {
         .sheet(item: $page) { p in
             GuideSheet(page: p).environment(\.theme, .settings).tint(TabTheme.settings.accent)
         }
-        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
+        .fileImporter(isPresented: Binding(get: { picking != nil }, set: { if !$0 { picking = nil } }),
+                      allowedContentTypes: pickerTypes) { result in
+            let mode = picking
+            picking = nil
             guard case .success(let url) = result else { return }
-            let ok = url.startAccessingSecurityScopedResource()
-            defer { if ok { url.stopAccessingSecurityScopedResource() } }
-            guard let data = try? Data(contentsOf: url) else { report = "Could not read that file."; return }
-            let n = store.importOld(data)
-            report = n < 0 ? "That is not a WatchLater file." : (n == 0 ? "Nothing new in it — every card was already here." : "Imported \(n).")
+            switch mode {
+            case .vault:
+                do {
+                    try ObsidianShelf.choose(url)
+                    vaultName = ObsidianShelf.folderName
+                    store.exportToObsidian()
+                } catch {
+                    report = "That folder cannot be used: \(error.localizedDescription)"
+                }
+            case .backup, .links, .none:
+                let ok = url.startAccessingSecurityScopedResource()
+                defer { if ok { url.stopAccessingSecurityScopedResource() } }
+                guard let data = try? Data(contentsOf: url) else { report = "Could not read that file."; return }
+                if mode == .links {
+                    let text = String(decoding: data, as: UTF8.self)
+                    Task { let r = await store.add(text: text); report = YouTube.links(in: text).isEmpty ? "No links in that file." : r.line }
+                } else {
+                    let n = store.importOld(data)
+                    report = n < 0 ? "That is not a WatchLater file." : (n == 0 ? "Nothing new in it — every card was already here." : "Imported \(n).")
+                }
+            }
         }
-        .fileExporter(isPresented: $exporting, document: JSONFile(data: store.exportData()),
-                      contentType: .json, defaultFilename: "watchlater-\(ISO8601DateFormatter.day.string(from: Date()))") { r in
-            if case .success = r { report = "Backup written." }
+        .fileExporter(isPresented: Binding(get: { saving != nil }, set: { if !$0 { saving = nil } }),
+                      document: JSONFile(data: saving == .spreadsheet ? store.spreadsheet() : store.exportData()),
+                      contentType: saving == .spreadsheet ? .commaSeparatedText : .json,
+                      defaultFilename: (saving == .spreadsheet ? "watchlater-" : "watchlater-")
+                        + ISO8601DateFormatter.day.string(from: Date())) { r in
+            if case .success = r { report = "Written." }
+        }
+    }
+
+    private var pickerTypes: [UTType] {
+        switch picking {
+        case .vault: return [.folder]
+        case .links: return [.plainText, .commaSeparatedText, .text]
+        default: return [.json]
         }
     }
 }
