@@ -48,7 +48,7 @@ final class WatchLaterUITests: XCTestCase {
     #endif
 
     private func tap(_ app: XCUIApplication, _ id: String, timeout: TimeInterval = 20, line: UInt = #line) {
-        let deadline = Date().addingTimeInterval(timeout)
+        var deadline = Date().addingTimeInterval(timeout)
         var scrolls = 0
         while Date() < deadline {
             if let e = element(app, id) {
@@ -71,10 +71,18 @@ final class WatchLaterUITests: XCTestCase {
                     holder.scroll(byDeltaX: 0, deltaY: macWheel)
                     if abs(e.frame.minY - before) < 1 { macWheel = -macWheel }
                     #else
-                    let scroll = app.scrollViews.firstMatch
-                    if scroll.exists { scroll.swipeUp(velocity: .slow) } else { app.swipeUp() }
+                    // The scroll view that HOLDS the control: "the first one" was
+                    // sometimes one lying off screen (x −426), so the swipe failed
+                    // and the time ran out (flaky on CI and locally, 2026-09-28).
+                    let holder = app.scrollViews.containing(.any, identifier: id).allElementsBoundByIndex
+                        .last { $0.frame.minX > -1 && $0.frame.minX < app.frame.maxX }
+                    if let holder { holder.swipeUp(velocity: .slow) } else { app.swipeUp() }
                     #endif
                     scrolls += 1
+                    // Each scroll earns its own time: on a slow CI runner one
+                    // look at the screen took 4–8 s, and a 20 s budget ran out
+                    // after a single scroll (TestFlight run 36426324363).
+                    deadline = max(deadline, Date().addingTimeInterval(15))
                     continue
                 }
                 e.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
@@ -86,6 +94,18 @@ final class WatchLaterUITests: XCTestCase {
         print("WL-TREE (tapping \(id)): \(windows.count) window(s)")
         for w in windows.prefix(2) { print(String(w.debugDescription.suffix(5000))) }
         XCTFail("nothing with identifier \(id)", line: line)
+    }
+
+    /// Tap, then wait for what the tap should bring. On a slow runner a tap can
+    /// land while the list redraws (right after typing) and be lost — the same
+    /// tap by hand works — so a lost tap is tried again, at most three times.
+    private func tap(_ app: XCUIApplication, _ id: String, bringing next: String, line: UInt = #line) -> Bool {
+        for _ in 0..<3 {
+            tap(app, id, line: line)
+            if waitFor(app, next, timeout: 8) { return true }
+            if absent(app, id) { break }
+        }
+        return waitFor(app, next, timeout: 5)
     }
 
     private func absent(_ app: XCUIApplication, _ id: String) -> Bool { element(app, id) == nil }
@@ -172,8 +192,8 @@ final class WatchLaterUITests: XCTestCase {
         // Only the seeded transcript of the fifteen-minute video says it.
         XCTAssertTrue(waitFor(app, "wl-hit-seed-seedfifteen"), "the video that said it is found")
         XCTAssertTrue(absent(app, "wl-hit-seed-seedfour000"), "the others never said it")
-        tap(app, "wl-hit-seed-seedfifteen")
-        XCTAssertTrue(waitFor(app, "wl-said-toggle"), "the video's page opens, with What was said")
+        XCTAssertTrue(tap(app, "wl-hit-seed-seedfifteen", bringing: "wl-said-toggle"),
+                      "the video's page opens, with What was said")
     }
 
     /// Test 6 — Connecting: link one card to another, walk to it, and the
@@ -182,16 +202,15 @@ final class WatchLaterUITests: XCTestCase {
         let app = launch(seeded: true)
         tap(app, "wl-open-seed-seedfifteen")
         XCTAssertTrue(absent(app, "wl-conn-seed-seedfour000"), "nothing is connected yet")
-        tap(app, "wl-link-add")
-        tap(app, "wl-link-pick-seed-seedfour000")
-        XCTAssertTrue(waitFor(app, "wl-conn-seed-seedfour000"), "the linked card is listed")
+        XCTAssertTrue(tap(app, "wl-link-add", bringing: "wl-link-pick-seed-seedfour000"), "the picker lists the others")
+        XCTAssertTrue(tap(app, "wl-link-pick-seed-seedfour000", bringing: "wl-conn-seed-seedfour000"),
+                      "the linked card is listed")
 
-        tap(app, "wl-conn-seed-seedfour000")
-        XCTAssertTrue(waitFor(app, "wl-item-back"), "the linked card opens, with a way back")
+        XCTAssertTrue(tap(app, "wl-conn-seed-seedfour000", bringing: "wl-item-back"), "the linked card opens, with a way back")
         XCTAssertTrue(waitFor(app, "wl-conn-seed-seedfifteen"), "and it links back by itself")
 
-        tap(app, "wl-item-back")
-        XCTAssertTrue(waitFor(app, "wl-link-remove-seed-seedfour000"), "back on the first card, the link is its own")
+        XCTAssertTrue(tap(app, "wl-item-back", bringing: "wl-link-remove-seed-seedfour000"),
+                      "back on the first card, the link is its own")
         XCTAssertTrue(absent(app, "wl-item-back"), "at the start of the trail there is no back")
     }
 }
