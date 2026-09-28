@@ -28,7 +28,7 @@ struct ItemView: View {
 
     var body: some View {
         ZStack {
-            Paper.bg.ignoresSafeArea()
+            TabBackground()
             if let v = item {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
@@ -68,7 +68,7 @@ struct ItemView: View {
     private func topBar(_ v: Video) -> some View {
         HStack(spacing: 10) {
             Text(v.kind.title.dropLast().uppercased())
-                .font(.system(size: 15, weight: .bold)).foregroundStyle(Paper.inkSoft)
+                .font(.system(size: 15, weight: .bold)).tracking(0.8).foregroundStyle(Paper.accent)
             Spacer()
             Button { dismiss() } label: {
                 CrossMark(size: 18).foregroundStyle(Paper.ink)
@@ -117,7 +117,7 @@ struct ItemView: View {
     private func heading(_ v: Video) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(v.title.isEmpty ? v.url : v.title)
-                .font(.system(size: 22, weight: .bold)).foregroundStyle(Paper.ink)
+                .font(.system(size: 24, weight: .heavy, design: .rounded)).foregroundStyle(Paper.accentInk)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("wl-item-title")
             Text(metaLine(v)).font(Type.body).foregroundStyle(Paper.inkSoft)
@@ -157,7 +157,7 @@ struct ItemView: View {
     private func composer(_ v: Video) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(v.kind.isTimed ? "Mark a moment" : "Keep a quote or a thought")
-                .font(Type.pill).foregroundStyle(Paper.ink)
+                .font(.system(size: 17, weight: .bold)).foregroundStyle(Paper.accentInk)
             HStack(spacing: 8) {
                 if v.kind.isTimed {
                     TextField("12:34", text: $markTime)
@@ -236,7 +236,7 @@ struct ItemView: View {
         if !list.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 Text(v.kind.isTimed ? "Marks · \(list.count)" : "Kept · \(list.count)")
-                    .font(Type.pill).foregroundStyle(Paper.ink)
+                    .font(.system(size: 17, weight: .bold)).foregroundStyle(Paper.accentInk)
                 ForEach(Array(list.enumerated()), id: \.element.id) { i, m in
                     markRow(v, m, index: i)
                 }
@@ -307,7 +307,7 @@ struct ItemView: View {
 
     private func notes(_ v: Video) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Notes").font(Type.pill).foregroundStyle(Paper.ink)
+            Text("Notes").font(.system(size: 17, weight: .bold)).foregroundStyle(Paper.accentInk)
             ZStack(alignment: .topLeading) {
                 if body_.isEmpty {
                     Text("Anything you want to remember — what it taught you, what to try, what it reminds you of. Headings with #, lists with -.")
@@ -340,7 +340,7 @@ struct ItemView: View {
 
     private func tagRow(_ v: Video) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Tags").font(Type.pill).foregroundStyle(Paper.ink)
+            Text("Tags").font(.system(size: 17, weight: .bold)).foregroundStyle(Paper.accentInk)
             if editingTags {
                 TextField("Tags, separated by commas", text: $tagsDraft)
                     .textFieldStyle(.plain).font(Type.body).foregroundStyle(Paper.ink)
