@@ -43,6 +43,10 @@ final class WatchLaterUITests: XCTestCase {
     /// A control below the fold exists but is not hittable, and a tap at its
     /// coordinate lands off screen and does nothing (test 3 found that out) —
     /// so scroll until it is really there, and only then tap.
+    #if os(macOS)
+    private var macWheel: CGFloat = -300
+    #endif
+
     private func tap(_ app: XCUIApplication, _ id: String, timeout: TimeInterval = 20, line: UInt = #line) {
         let deadline = Date().addingTimeInterval(timeout)
         var scrolls = 0
@@ -56,8 +60,20 @@ final class WatchLaterUITests: XCTestCase {
                     return
                 }
                 if scrolls < 12 {
+                    #if os(macOS)
+                    // A swipe does not scroll on the Mac (CI 2026-09-28: "Link to…"
+                    // sat under the card sheet's edge). Scroll the view that holds
+                    // the control — the sheet's, not the window's behind it — and
+                    // if it did not move, the wheel goes the other way.
+                    let holder = app.scrollViews.containing(.any, identifier: id).allElementsBoundByIndex.last
+                        ?? app.scrollViews.firstMatch
+                    let before = e.frame.minY
+                    holder.scroll(byDeltaX: 0, deltaY: macWheel)
+                    if abs(e.frame.minY - before) < 1 { macWheel = -macWheel }
+                    #else
                     let scroll = app.scrollViews.firstMatch
                     if scroll.exists { scroll.swipeUp(velocity: .slow) } else { app.swipeUp() }
+                    #endif
                     scrolls += 1
                     continue
                 }
