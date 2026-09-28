@@ -15,7 +15,7 @@ struct SheetFrame<Content: View>: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
-                        Text(title).font(Type.title).foregroundStyle(Paper.ink)
+                        Text(title).font(.system(size: 28, weight: .heavy, design: .rounded)).foregroundStyle(Paper.accentInk)
                         Spacer()
                         Button { dismiss() } label: {
                             CrossMark(size: 18).foregroundStyle(Paper.ink)

@@ -198,12 +198,26 @@ public struct Video: Codable, Identifiable, Equatable, Hashable {
     public var doneWord: String { kind.isTimed ? "Watched" : "Read" }
 }
 
+/// A search he wants to come back to — one tap in Find runs it again.
+public struct SavedSearch: Codable, Identifiable, Equatable, Hashable {
+    public var id: String
+    public var query: String
+    public var createdAt: Date
+    public var modifiedAt: Date
+    public var deletedAt: Date?
+    public init(id: String = Video.newID(), query: String, createdAt: Date = Date()) {
+        self.id = id; self.query = query; self.createdAt = createdAt; self.modifiedAt = createdAt
+    }
+}
+
 /// The whole list, as it sits in the file.
 public struct Library: Codable, Equatable {
     public var version: String
     public var schema: Int
     public var savedAt: Date
     public var items: [Video]
+    /// Since 0.4 — kept in the same file so they travel between devices.
+    public var searches: [SavedSearch] = []
 
     public init(version: String = "", items: [Video] = []) {
         self.version = version
@@ -218,6 +232,12 @@ public struct Library: Codable, Equatable {
         schema = try c.decodeIfPresent(Int.self, forKey: .schema) ?? 1
         savedAt = try c.decodeIfPresent(Date.self, forKey: .savedAt) ?? Date()
         items = try c.decodeIfPresent([Video].self, forKey: .items) ?? []
+        searches = try c.decodeIfPresent([SavedSearch].self, forKey: .searches) ?? []
+    }
+
+    /// The saved searches still in use, oldest first (the order he made them).
+    public var liveSearches: [SavedSearch] {
+        searches.filter { $0.deletedAt == nil }.sorted { $0.createdAt < $1.createdAt }
     }
 
     /// Everything that has not been binned.
@@ -231,6 +251,7 @@ public struct Library: Codable, Equatable {
     public mutating func purgeTombstones(now: Date = Date()) {
         let cutoff = now.addingTimeInterval(-Double(Library.tombstoneDays) * 86_400)
         items.removeAll { ($0.deletedAt ?? .distantFuture) < cutoff }
+        searches.removeAll { ($0.deletedAt ?? .distantFuture) < cutoff }
     }
 
     /// Two copies of the list become one: a card is taken from whichever side
@@ -253,6 +274,13 @@ public struct Library: Codable, Equatable {
         out.schema = max(a.schema, b.schema)
         out.savedAt = max(a.savedAt, b.savedAt)
         out.items = order.compactMap { byID[$0] }.sorted { $0.savedAt > $1.savedAt }
+        // Saved searches merge the same way: later change wins, a removal is a change.
+        var sById: [String: SavedSearch] = [:]
+        for q in a.searches + b.searches {
+            if let mine = sById[q.id], mine.modifiedAt >= q.modifiedAt { continue }
+            sById[q.id] = q
+        }
+        out.searches = sById.values.sorted { $0.createdAt < $1.createdAt }
         return out
     }
 

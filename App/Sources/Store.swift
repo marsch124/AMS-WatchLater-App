@@ -11,6 +11,11 @@ final class Store: ObservableObject {
     @Published var busy: String?
     @Published private(set) var syncPlace = "This device"
     @Published private(set) var thumbTick = 0     // bumped when a picture lands
+    /// What was said, by video id — beside the list, so both devices share it.
+    @Published private(set) var transcripts: [String: Transcript] = [:]
+    let transcriptShelf: TranscriptShelf
+    /// The hidden player that fetches captions (never in a test run).
+    let fetcher: TranscriptFetcher
 
     let isTestRun: Bool
     /// No network in a test run: cards keep what the seed gave them.
@@ -40,11 +45,20 @@ final class Store: ObservableObject {
         try? FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
         self.root = home
         file = LibraryFile(url: home.appendingPathComponent("watchlater.json"))
+        transcriptShelf = TranscriptShelf(folder: home.appendingPathComponent("Transcripts", isDirectory: true))
+        fetcher = TranscriptFetcher(shelf: transcriptShelf)
         syncPlace = home.path.contains("Mobile Documents") ? "iCloud Drive" : "This device"
         if isTestRun, args.contains("-seed") {
             file.write(Store.seed(), version: Guide.appVersion)
+            transcriptShelf.write(Store.seedTranscript())
         }
         reload()
+        // -scratch only: "-scratchAdd <link>" saves a link at launch, so a real
+        // video can be tried in a throwaway list without tapping through Add.
+        if args.contains("-scratch"), let i = args.firstIndex(of: "-scratchAdd"), i + 1 < args.count {
+            let link = args[i + 1]
+            Task { let r = await self.add(text: link); self.say(r.line); self.lookForTranscripts() }
+        }
         adoptLocalListIfCloudIsEmpty()
         backUpDaily()
         watchForChanges()
@@ -75,6 +89,16 @@ final class Store: ObservableObject {
         }
         let support = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return support.appendingPathComponent("AMSWatchLater", isDirectory: true)
+    }
+
+    /// What was "said" in the seeded Raycast video — so a UI test can prove that
+    /// Find searches transcripts, without the network.
+    static func seedTranscript() -> Transcript {
+        Transcript(videoId: "seedfifteen", lines: [
+            .init(t: 12_000, s: "Welcome back to the channel"),
+            .init(t: 95_000, s: "the hyper key is caps lock and it changes everything"),
+            .init(t: 412_000, s: "snippets are where the real time saving is"),
+        ])
     }
 
     /// Three videos of known lengths, so a UI test can prove the time slots.
@@ -118,8 +142,44 @@ final class Store: ObservableObject {
 
     func reload() {
         library = file.read()
+        transcripts = transcriptShelf.all()
         drainInbox()
         Task { await resolveBare(); await fetchThumbs() }
+        lookForTranscripts()
+    }
+
+    /// Ask the hidden player about every video that has no transcript yet.
+    func lookForTranscripts(force: Bool = false) {
+        guard !offline else { return }
+        fetcher.onSaved = { [weak self] id in
+            guard let self else { return }
+            if let t = self.transcriptShelf.read(id) { self.transcripts[id] = t }
+        }
+        let ids = library.live.filter { $0.kind == .video && !$0.countsAsShort }.compactMap(\.videoId)
+        fetcher.enqueue(ids)
+    }
+
+    /// Saved searches — in the list file, so they travel to the other device.
+    func saveSearch(_ query: String) {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard q.count >= 2, !library.liveSearches.contains(where: { Shelf.fold($0.query) == Shelf.fold(q) }) else { return }
+        commit { $0.searches.append(SavedSearch(query: q)) }
+        say("Search saved")
+    }
+
+    func removeSearch(_ s: SavedSearch) {
+        commit { lib in
+            if let i = lib.searches.firstIndex(where: { $0.id == s.id }) {
+                lib.searches[i].deletedAt = Date(); lib.searches[i].modifiedAt = Date()
+            }
+        }
+        say("Search removed", undo: { [weak self] in
+            self?.commit { lib in
+                if let i = lib.searches.firstIndex(where: { $0.id == s.id }) {
+                    lib.searches[i].deletedAt = nil; lib.searches[i].modifiedAt = Date()
+                }
+            }
+        })
     }
 
     /// Applies a change and writes it — merged against the file first, so the

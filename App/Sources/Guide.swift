@@ -24,6 +24,15 @@ enum Guide {
 
     /// Newest first. Every release adds an entry — never edits an old one.
     static let releases: [Release] = [
+        Release(version: "0.4", date: "2026-09-28",
+                headline: "Find what was said in a video",
+                lines: [
+                    "Find now searches what was said in your videos too — not only titles and notes. A result shows the words and the moment they were said, and opens the video right there.",
+                    "The app collects the subtitles of each video quietly by itself, a few seconds per video, while it is open. Settings › What was said shows how many it has.",
+                    "On a video's own page, What was said lists the whole transcript with a search of its own. Tap a line's time to jump there; Keep turns the line into a mark.",
+                    "Save a search you use often: it becomes a chip at the top of Find, on both devices. Tap it to run it again; while it is chosen, the red cross removes it.",
+                    "Filters narrow a search down: Everywhere, Waiting or Library, a kind (Videos, Articles …) and With notes.",
+                ]),
         Release(version: "0.3", date: "2026-09-28",
                 headline: "Five tabs, each in its own colour",
                 lines: [
@@ -75,7 +84,11 @@ enum Guide {
         ("Topics",
          "Give a card a tag (on its page, or with the tag button on the card) and the tag becomes a topic. A topic shows what is still waiting and what is already in the Library. Linking notes to each other comes in a later version."),
         ("Find",
-         "Type two letters or more. Find looks in titles, channels, tags, your marks and your notes, and ignores accents. Each result says where it found the words — a mark shows its time. Tap a result to open it."),
+         "Type two letters or more. Find looks in titles, channels, tags, your marks, your notes and what was said in the videos, and ignores accents. Each result says where it found the words; a mark or a spoken line shows its time, and tapping the result opens the video at that moment. The pills under the search narrow it down: Everywhere, Waiting or Library, a kind, With notes."),
+        ("Saved searches",
+         "Save this search keeps what you typed as a chip at the top of Find, on both devices. Tap a chip to run it again. While it is chosen, a small red cross removes it; Undo brings it back."),
+        ("What was said",
+         "YouTube only gives subtitles to its own player, so the app plays each video once in a tiny, silent, invisible player with subtitles on and keeps the text. It does this by itself, one video at a time, while the app is open — the list does not change. Videos without subtitles are tried again after a week. The text is kept beside your list in iCloud, so the other device has it too. Settings › What was said shows how many videos have it; tap it to look again now."),
         ("A card's own page",
          "Tap a card's picture or title. A video plays right on the page (a few videos only play on YouTube; then there is a button for that). Under it you can mark moments, write notes and set tags."),
         ("Marks",

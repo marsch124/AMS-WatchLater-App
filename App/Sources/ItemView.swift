@@ -8,8 +8,12 @@ struct ItemView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     let itemID: String
+    /// Where the video starts — a "said at" result in Find opens it right there.
+    var start: Int? = nil
 
     @StateObject private var player = PlayerHandle()
+    @State private var saidOpen = false
+    @State private var saidQuery = ""
     @State private var markTime = ""
     @State private var markText = ""
     @State private var markMissing: String?
@@ -37,6 +41,7 @@ struct ItemView: View {
                         heading(v)
                         composer(v)
                         marks(v)
+                        said(v)
                         notes(v)
                         tagRow(v)
                         doneRow(v)
@@ -92,7 +97,7 @@ struct ItemView: View {
                         .accessibilityIdentifier("wl-player-refused")
                 }
             default:
-                YouTubePlayer(videoId: id, start: 0, handle: player)
+                YouTubePlayer(videoId: id, start: start ?? 0, handle: player)
             }
         } else if v.kind.isTimed || Thumbs.have(v.thumbKey) {
             picture(v)
@@ -301,6 +306,69 @@ struct ItemView: View {
     private func jump(_ v: Video, to seconds: Int) {
         if player.state == .ready { player.seek(seconds) }
         else if let u = v.url(at: seconds) { openURL(u) }
+    }
+
+    // MARK: What was said
+
+    @ViewBuilder
+    private func said(_ v: Video) -> some View {
+        if let id = v.videoId, let t = store.transcripts[id] {
+            VStack(alignment: .leading, spacing: 10) {
+                Button { withAnimation(.easeOut(duration: 0.2)) { saidOpen.toggle() } } label: {
+                    HStack(spacing: 8) {
+                        Text("What was said").font(.system(size: 17, weight: .bold)).foregroundStyle(Paper.accentInk)
+                        Text("\(t.lines.count) lines").font(Type.small).foregroundStyle(Paper.inkSoft)
+                        Spacer()
+                        Text(saidOpen ? "Hide" : "Show").font(Type.pill).foregroundStyle(Paper.accent)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("wl-said-toggle")
+                if saidOpen { saidList(v, t) }
+            }
+        }
+    }
+
+    private func saidList(_ v: Video, _ t: Transcript) -> some View {
+        let shown = saidQuery.trimmingCharacters(in: .whitespaces).count >= 2 ? t.lines(matching: saidQuery) : t.lines
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Glyph(art: GlyphArt.find, size: 18).foregroundStyle(Paper.accent)
+                TextField("Find in what was said", text: $saidQuery)
+                    .textFieldStyle(.plain).font(Type.body).foregroundStyle(Paper.ink)
+                    .accessibilityIdentifier("wl-said-find")
+            }
+            .padding(10)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Paper.card)
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Paper.line)))
+            Text("Tap a time to go there. Keep turns a line into one of your marks.")
+                .font(Type.small).foregroundStyle(Paper.inkSoft)
+            LazyVStack(alignment: .leading, spacing: 6) {
+                ForEach(Array(shown.prefix(600).enumerated()), id: \.offset) { i, line in
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Button { jump(v, to: line.seconds) } label: {
+                            Text(Clock.badge(line.seconds) ?? "0:00")
+                                .font(.system(size: 15, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(Paper.accentInk)
+                                .frame(minWidth: 58, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("wl-said-jump-\(i)")
+                        Text(line.s).font(Type.body).foregroundStyle(Paper.ink)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Button { store.addMark(to: v.id, seconds: line.seconds, text: line.s); store.say("Kept as a mark") } label: {
+                            Text("Keep").font(.system(size: 15, weight: .semibold)).foregroundStyle(Paper.accent)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("wl-said-keep-\(i)")
+                    }
+                    .padding(.vertical, 3)
+                }
+            }
+            .padding(12)
+            .modifier(CardFrame())
+        }
     }
 
     // MARK: The long note

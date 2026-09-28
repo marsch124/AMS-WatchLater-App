@@ -11,6 +11,8 @@ public struct Hit: Identifiable, Equatable {
     public enum Place: Equatable {
         case title, channel, tag(String), note, body, blurb
         case mark(seconds: Int?)
+        /// Found in what was said in the video, at that second.
+        case said(seconds: Int)
     }
     public var id: String { item.id + "|" + snippet }
     public let item: Video
@@ -19,6 +21,38 @@ public struct Hit: Identifiable, Equatable {
     public let snippet: String
     /// The matched words as they appear in the snippet (for highlighting).
     public let match: String
+    /// How many MORE times the words are said in the video, beyond this one.
+    public var alsoSaid: Int = 0
+}
+
+/// Narrowing a search: what kind of thing, where it is, whether he wrote about it.
+public struct FindFilter: Equatable {
+    public enum Where: String, CaseIterable, Identifiable {
+        case everywhere, waiting, library
+        public var id: String { rawValue }
+        public var title: String {
+            switch self {
+            case .everywhere: return "Everywhere"
+            case .waiting:    return "Waiting"
+            case .library:    return "Library"
+            }
+        }
+    }
+    public var kind: ItemKind?
+    public var place: Where = .everywhere
+    public var withNotes = false
+    public init() {}
+
+    public func admits(_ v: Video) -> Bool {
+        if let k = kind, v.kind != k { return false }
+        switch place {
+        case .everywhere: break
+        case .waiting: if !v.isOpen { return false }
+        case .library: if v.watchedAt == nil { return false }
+        }
+        if withNotes && !v.hasNotes { return false }
+        return true
+    }
 }
 
 public enum Finder {
@@ -26,18 +60,39 @@ public enum Finder {
     /// Every item that mentions the words, once, at its best place: its title
     /// first, then his own marks and notes, then tags, channel and summary.
     /// Waiting things come before Library things; within each, newest first.
-    public static func search(_ library: Library, _ query: String) -> [Hit] {
+    public static func search(_ library: Library, _ query: String,
+                              transcripts: [String: Transcript] = [:],
+                              filter: FindFilter = FindFilter()) -> [Hit] {
         let needle = Shelf.fold(query)
         guard needle.count >= 2 else { return [] }
         var hits: [Hit] = []
-        for v in library.live {
+        for v in library.live where filter.admits(v) {
             if let h = bestHit(in: v, needle: needle) { hits.append(h) }
+            else if let id = v.videoId, let t = transcripts[id], let h = saidHit(in: v, t, needle: needle) { hits.append(h) }
         }
         return hits.sorted { a, b in
             if a.item.isOpen != b.item.isOpen { return a.item.isOpen }
             let da = a.item.watchedAt ?? a.item.savedAt, db = b.item.watchedAt ?? b.item.savedAt
             return da > db
         }
+    }
+
+    /// The first moment the words are said, and how many more times.
+    static func saidHit(in v: Video, _ t: Transcript, needle: String) -> Hit? {
+        var first: (Transcript.Line, Int)? = nil
+        var count = 0
+        for (i, line) in t.lines.enumerated() where Shelf.fold(line.s).contains(needle) {
+            count += 1
+            if first == nil { first = (line, i) }
+        }
+        guard let (line, i) = first else { return nil }
+        // A line is a few seconds of speech — take its neighbours for context.
+        let context = t.lines[max(0, i - 1)...min(t.lines.count - 1, i + 1)].map(\.s).joined(separator: " ")
+        // Little before the words, so a two-line row still shows them.
+        guard let s = snippet(context, needle, radius: 20) else { return nil }
+        var h = Hit(item: v, place: .said(seconds: line.seconds), snippet: s.text, match: s.match)
+        h.alsoSaid = count - 1
+        return h
     }
 
     static func bestHit(in v: Video, needle: String) -> Hit? {

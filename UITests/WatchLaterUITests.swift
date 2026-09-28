@@ -142,4 +142,21 @@ final class WatchLaterUITests: XCTestCase {
         XCTAssertTrue(waitFor(app, "wl-open-seed-seedfour000"), "and the ticked video is in it")
         XCTAssertTrue(waitFor(app, "wl-open-seed-seedlecture"), "beside what was there already")
     }
+
+    /// Test 5 — Finding: words that were only SAID in a video (its seeded
+    /// transcript), never written anywhere, find it, and the result opens the
+    /// video's page.
+    func testFindSearchesWhatWasSaid() {
+        let app = launch(seeded: true)
+        tap(app, "tab-find")
+        XCTAssertTrue(waitFor(app, "wl-screen-find"), "the Find tab opens")
+        tap(app, "wl-find-field")
+        app.typeText("changes everything")
+        // "changes everything" is written nowhere — no title, tag, mark or note has it.
+        // Only the seeded transcript of the fifteen-minute video says it.
+        XCTAssertTrue(waitFor(app, "wl-hit-seed-seedfifteen"), "the video that said it is found")
+        XCTAssertTrue(absent(app, "wl-hit-seed-seedfour000"), "the others never said it")
+        tap(app, "wl-hit-seed-seedfifteen")
+        XCTAssertTrue(waitFor(app, "wl-said-toggle"), "the video's page opens, with What was said")
+    }
 }

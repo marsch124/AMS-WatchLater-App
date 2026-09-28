@@ -6,15 +6,14 @@ struct WatchLaterApp: App {
     @StateObject private var store = Store()
     @Environment(\.scenePhase) private var phase
 
+    #if os(macOS)
+    @NSApplicationDelegateAdaptor(MacAppDelegate.self) private var macDelegate
+    #endif
+
     var body: some Scene {
-        #if os(macOS)
-        // One list, one window. A WindowGroup started by the UI tests on the
-        // Mac made no first window at all (CI, 2026-09-28: the app ran in front
-        // with zero windows until ⌘N) — a single Window always opens at launch.
-        Window("WatchLater", id: "main") { root }
-            .defaultSize(width: 980, height: 760)
-        #else
         WindowGroup { root }
+        #if os(macOS)
+        .defaultSize(width: 980, height: 760)
         #endif
     }
 
@@ -37,3 +36,32 @@ struct WatchLaterApp: App {
         Task { store.say(await store.add(text: link).line) }
     }
 }
+
+#if os(macOS)
+/// A safety net for the one window. Started some ways (a UI test, a fresh
+/// build, a remembered "closed" state) the Mac came up with the app running and
+/// NO window — and the hidden caption player lives in that window. ⌘N always
+/// worked, so when there is no window this does exactly what ⌘N does.
+/// (2026-09-28: WindowGroup had no window under the Mac UI tests; a single
+/// Window had none when opened from Finder. This covers both.)
+final class MacAppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ note: Notification) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { Self.ensureWindow() }
+    }
+
+    /// A click on the Dock icon with no window open brings one back.
+    func applicationShouldHandleReopen(_ app: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { Self.ensureWindow() }
+        return true
+    }
+
+    static func ensureWindow() {
+        guard !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) else { return }
+        let items = NSApp.mainMenu?.items.flatMap { $0.submenu?.items ?? [] } ?? []
+        if let newWindow = items.first(where: { $0.keyEquivalent == "n" && $0.keyEquivalentModifierMask == .command }),
+           let action = newWindow.action {
+            NSApp.sendAction(action, to: newWindow.target, from: newWindow)
+        }
+    }
+}
+#endif

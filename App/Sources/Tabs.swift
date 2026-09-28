@@ -44,6 +44,12 @@ struct MainView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
+            // The hidden player that fetches what was said — invisible, in a
+            // corner, and never in a test run.
+            if !store.offline {
+                TranscriptHost(fetcher: store.fetcher)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
             // Each screen is handed its tab's colours; everything inside
             // follows — headings, pills, buttons, and the pages it opens.
             Group {
@@ -131,7 +137,11 @@ struct TabBar: View {
 
 // MARK: - Opening a card from any tab
 
-struct OpenItem: Identifiable, Equatable { let id: String }
+struct OpenItem: Identifiable, Equatable {
+    let id: String
+    /// Open the video at this second (a "said at" result in Find).
+    var start: Int? = nil
+}
 
 /// A card's page opens in the colour of the tab it was opened from.
 struct ItemSheet: ViewModifier {
@@ -141,7 +151,7 @@ struct ItemSheet: ViewModifier {
 
     func body(content: Content) -> some View {
         content.sheet(item: $item) { o in
-            ItemView(itemID: o.id)
+            ItemView(itemID: o.id, start: o.start)
                 .environmentObject(store)
                 .environment(\.theme, theme)
                 .tint(theme.accent)

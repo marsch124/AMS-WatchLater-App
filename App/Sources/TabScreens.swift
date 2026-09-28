@@ -193,16 +193,19 @@ struct FindTab: View {
     @EnvironmentObject private var store: Store
     @Environment(\.theme) private var theme
     @State private var query = ""
+    @State private var filter = FindFilter()
     @State private var opened: OpenItem?
     @FocusState private var focused: Bool
 
+    private var searching: Bool { query.trimmingCharacters(in: .whitespaces).count >= 2 }
+
     var body: some View {
-        let hits = Finder.search(store.library, query)
+        let hits = Finder.search(store.library, query, transcripts: store.transcripts, filter: filter)
         TabScreen {
             ScreenTitle(title: "Find", identifier: "wl-screen-find")
             HStack(spacing: 10) {
                 Glyph(art: GlyphArt.find, size: 22).foregroundStyle(Paper.accent)
-                TextField("Words from a title, a mark or a note", text: $query)
+                TextField("Titles, notes, what was said", text: $query)
                     .textFieldStyle(.plain).font(.system(size: 17)).foregroundStyle(Paper.ink)
                     .focused($focused)
                     .submitLabel(.search)
@@ -216,11 +219,14 @@ struct FindTab: View {
             .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Paper.card)
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Paper.accent, lineWidth: 1.5)))
 
-            if query.trimmingCharacters(in: .whitespaces).count < 2 {
+            savedRow
+            if searching { filterRow }
+
+            if !searching {
                 tagShortcuts
             } else if hits.isEmpty {
                 EmptyNote(art: GlyphArt.find, title: "Nothing mentions “\(query)”",
-                          text: "Find looks in titles, channels, tags, your marks and your notes — in the list and in the Library.",
+                          text: "Find looks in titles, channels, tags, your marks, your notes and what was said in the videos — in the list and in the Library.",
                           identifier: "wl-find-none")
             } else {
                 let waiting = hits.filter { $0.item.isOpen }, done = hits.filter { !$0.item.isOpen }
@@ -237,6 +243,58 @@ struct FindTab: View {
         .itemSheet($opened)
     }
 
+    /// Saved searches: one tap runs them again. The current one can be saved.
+    @ViewBuilder
+    private var savedRow: some View {
+        let saved = store.library.liveSearches
+        let isSaved = saved.contains { Shelf.fold($0.query) == Shelf.fold(query) }
+        if !saved.isEmpty || (searching && !isSaved) {
+            FlowRow(spacing: 8) {
+                ForEach(saved) { q in
+                    HStack(spacing: 0) {
+                        Pill(title: q.query, on: Shelf.fold(q.query) == Shelf.fold(query),
+                             identifier: "wl-saved-\(q.query)") { query = q.query }
+                        if Shelf.fold(q.query) == Shelf.fold(query) {
+                            Button { store.removeSearch(q) } label: {
+                                CrossMark(size: 13).foregroundStyle(Paper.danger).frame(width: 30, height: 30)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("wl-saved-remove")
+                        }
+                    }
+                }
+                if searching && !isSaved {
+                    Button { store.saveSearch(query) } label: {
+                        HStack(spacing: 6) { PlusMark(size: 14, weight: 2.4); Text("Save this search") }
+                            .font(Type.pill).foregroundStyle(Paper.accentInk)
+                            .padding(.horizontal, 13).padding(.vertical, 8)
+                            .background(Capsule().strokeBorder(Paper.accent, style: StrokeStyle(lineWidth: 1.2, dash: [4, 3])))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("wl-save-search")
+                }
+            }
+        }
+    }
+
+    /// Narrow it down: where, what kind, only what he wrote about.
+    private var filterRow: some View {
+        FlowRow(spacing: 8) {
+            ForEach(FindFilter.Where.allCases) { w in
+                Pill(title: w.title, on: filter.place == w, identifier: "wl-find-where-\(w.rawValue)") { filter.place = w }
+            }
+            let kinds = ItemKind.allCases.filter { k in store.library.live.contains { $0.kind == k } }
+            if kinds.count > 1 {
+                ForEach(kinds) { k in
+                    Pill(title: k.title, on: filter.kind == k, identifier: "wl-find-kind-\(k.rawValue)") {
+                        filter.kind = filter.kind == k ? nil : k
+                    }
+                }
+            }
+            Pill(title: "With notes", on: filter.withNotes, identifier: "wl-find-notes") { filter.withNotes.toggle() }
+        }
+    }
+
     @ViewBuilder
     private var tagShortcuts: some View {
         let topics = Topics.all(store.library)
@@ -248,21 +306,34 @@ struct FindTab: View {
                 }
             }
         }
-        Text("Type two letters or more. Accents do not matter — hjarnans finds hjärnans.")
+        Text("Type two letters or more. Find also searches what was said in your videos. Accents do not matter — hjarnans finds hjärnans.")
             .font(Type.body).foregroundStyle(Paper.inkSoft).padding(.top, 6)
     }
 
     private func hitRow(_ h: Hit) -> some View {
-        ItemRow(item: h.item, open: { opened = OpenItem(id: h.item.id) }) {
+        ItemRow(item: h.item, open: { opened = OpenItem(id: h.item.id, start: startSecond(h.place)) }) {
             if h.place != .title {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     placeLabel(h.place)
                     highlighted(h)
                         .font(Type.small).lineLimit(2)
                 }
+                if h.alsoSaid > 0 {
+                    Text("and \(h.alsoSaid) more time\(h.alsoSaid == 1 ? "" : "s") in the video")
+                        .font(Type.small).foregroundStyle(Paper.inkSoft)
+                }
             }
         }
         .accessibilityIdentifier("wl-hit-\(h.item.id)")
+    }
+
+    /// A moment to open at: where it was said, or where the mark is.
+    private func startSecond(_ p: Hit.Place) -> Int? {
+        switch p {
+        case .said(let s): return s
+        case .mark(let s): return s
+        default: return nil
+        }
     }
 
     @ViewBuilder
@@ -278,6 +349,12 @@ struct FindTab: View {
         case .tag:         Text("tag").font(.system(size: 14, weight: .semibold)).foregroundStyle(Paper.accent)
         case .channel:     Text("by").font(.system(size: 14, weight: .semibold)).foregroundStyle(Paper.accent)
         case .blurb:       Text("about").font(.system(size: 14, weight: .semibold)).foregroundStyle(Paper.accent)
+        case .said(let s):
+            Text("said \(Clock.badge(s) ?? "")")
+                .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                .foregroundStyle(Paper.accentInk)
+                .padding(.horizontal, 6).padding(.vertical, 1)
+                .background(Capsule().fill(Paper.accentSoft))
         case .title:       EmptyView()
         }
     }
@@ -317,6 +394,7 @@ struct SettingsTab: View {
                             value: "\(store.library.open.count) · \(Clock.total(store.library.open))", identifier: "wl-set-waiting")
                 SettingsRow(art: GlyphArt.library, title: "In the Library",
                             value: "\(store.library.live.filter { $0.watchedAt != nil }.count)", identifier: "wl-set-library")
+                SaidRow(fetcher: store.fetcher)
                 SettingsRow(art: GlyphArt.exportOut, title: "Back up now",
                             value: "\(store.backups().count) safety cop\(store.backups().count == 1 ? "y" : "ies")",
                             identifier: "wl-export") { exporting = true }
@@ -363,6 +441,22 @@ struct SettingsGroup<Content: View>: View {
         VStack(spacing: 0) { content }
             .modifier(CardFrame())
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+/// How many videos Find can search by what was said — and a way to look again.
+private struct SaidRow: View {
+    @EnvironmentObject var store: Store
+    @ObservedObject var fetcher: TranscriptFetcher
+
+    var body: some View {
+        let videos = store.library.live.filter { $0.kind == .video && !$0.countsAsShort }
+        let have = videos.filter { $0.videoId.map { store.transcripts[$0] != nil } ?? false }.count
+        let busy = fetcher.current != nil
+        SettingsRow(art: GlyphArt.find, title: "What was said",
+                    value: busy ? "\(have) of \(videos.count) · listening, \(fetcher.waiting + 1) to go"
+                                : "\(have) of \(videos.count) videos",
+                    identifier: "wl-set-said") { store.lookForTranscripts(force: true) }
     }
 }
 

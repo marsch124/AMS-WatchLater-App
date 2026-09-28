@@ -22,7 +22,7 @@ if [ "${2:-iphone}" = "mac" ]; then
   DEST='platform=macOS'
   OUT="$DD/Build/Products/Debug/AMSWatchLater.app"
 else
-  DEST='platform=iOS Simulator,name=iPhone 17 Pro'
+  DEST="${WL_DEST:-platform=iOS Simulator,name=iPhone 17 Pro}"
   OUT="$DD/Build/Products/Debug-iphonesimulator/AMSWatchLater.app"
 fi
 
