@@ -115,6 +115,11 @@ struct TabBar: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                // One element per tab, named, on both platforms — the Mac's UI
+                // tests could not find "tab-library" otherwise (CI 2026-09-28).
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(t.title)
+                .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
                 .accessibilityIdentifier("tab-\(t.rawValue)")
             }
         }

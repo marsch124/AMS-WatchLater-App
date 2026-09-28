@@ -60,6 +60,9 @@ final class WatchLaterUITests: XCTestCase {
             }
             usleep(200_000)
         }
+        let windows = app.windows.allElementsBoundByIndex
+        print("WL-TREE (tapping \(id)): \(windows.count) window(s)")
+        for w in windows.prefix(2) { print(String(w.debugDescription.suffix(5000))) }
         XCTFail("nothing with identifier \(id)", line: line)
     }
 
