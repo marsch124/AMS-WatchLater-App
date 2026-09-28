@@ -24,6 +24,14 @@ enum Guide {
 
     /// Newest first. Every release adds an entry — never edits an old one.
     static let releases: [Release] = [
+        Release(version: "0.6", date: "2026-09-28",
+                headline: "Learn more from what you saved",
+                lines: [
+                    "Look again: your old marks come back in the Library, a few a day. I remember sends a mark further off each time — three days, a week, three weeks, two months; Again brings it back tomorrow.",
+                    "A video's page has a new part, Learn. Summarise makes a short summary, the key points and questions to check yourself — by Apple Intelligence, on your device, from what was said. The questions hide their answers until you tap.",
+                    "A summary is kept on the card, so your other device shows it even if it cannot make one itself.",
+                    "Find more on YouTube, on a card and on a topic, searches for more on the same thing.",
+                ]),
         Release(version: "0.5", date: "2026-09-28",
                 headline: "Connect what you saved",
                 lines: [
@@ -99,6 +107,10 @@ enum Guide {
          "Save this search keeps what you typed as a chip at the top of Find, on both devices. Tap a chip to run it again. While it is chosen, a small red cross removes it; Undo brings it back."),
         ("What was said",
          "YouTube only gives subtitles to its own player, so the app plays each video once in a tiny, silent, invisible player with subtitles on and keeps the text. It does this by itself, one video at a time, while the app is open — the list does not change. Videos without subtitles are tried again after a week. The text is kept beside your list in iCloud, so the other device has it too. Settings › What was said shows how many videos have it; tap it to look again now."),
+        ("Look again",
+         "Marks you wrote come back in the Library, one at a time, a few a day, starting a day after you wrote them. I remember sends a mark further off each time — three days, a week, three weeks, two months, half a year. Again brings it back tomorrow. Watch it again jumps to that moment in the video."),
+        ("Learn",
+         "On a video's page, Summarise asks Apple Intelligence — on your device, nothing leaves it — for a short summary, the key points and three or four questions, in the language the video speaks. A long video takes a minute or two: it is read in parts, and the page says which part. It needs the video's subtitles (What was said) and a device with Apple Intelligence switched on; if something is missing, the page says what under the button. The summary is kept on the card, so the other device shows it too. It can get things wrong — the subtitles are there to check. Find more on YouTube searches for the same subject."),
         ("Connected",
          "On a card's page, Link to… connects it with another card; the other card shows the link by itself. Writing [[the other card's title]] in the note links too. → is a link from this card, ← one to it, ↔ both ways. Tap a connected card to open it in the same page; the back button returns. The red cross removes a link you made there, and Undo brings it back. Maybe related suggests cards that share a tag, a channel or title words — Link connects them in one tap. A topic's page lists related topics: the number is how many cards they share."),
         ("A card's own page",

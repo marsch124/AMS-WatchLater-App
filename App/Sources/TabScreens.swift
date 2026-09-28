@@ -30,15 +30,30 @@ struct LibraryTab: View {
     @State private var filter: LibraryShelf.Filter = .all
     @State private var kind: ItemKind?
     @State private var opened: OpenItem?
+    @State private var reviewing: [Review.Due]?
 
     var body: some View {
         let groups = LibraryShelf.groups(store.library, filter: filter, kind: kind)
+        let due = Review.due(store.library)
         let doneCount = store.library.live.filter { $0.watchedAt != nil }.count
         TabScreen {
             ScreenTitle(title: "Library", identifier: "wl-screen-library") {
                 let marks = LibraryShelf.markCount(store.library)
                 Text("\(doneCount)\(marks > 0 ? " · \(marks) mark\(marks == 1 ? "" : "s")" : "")")
                     .font(Type.small).foregroundStyle(Paper.accentInk)
+            }
+            if !due.isEmpty {
+                HStack(spacing: 14) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Look again").font(.system(size: 18, weight: .bold, design: .rounded)).foregroundStyle(Paper.accentInk)
+                        Text("\(due.count) mark\(due.count == 1 ? "" : "s") from before")
+                            .font(Type.small).foregroundStyle(Paper.inkSoft)
+                    }
+                    Spacer()
+                    GoButton(title: "Start", identifier: "wl-review-start") { reviewing = due }
+                }
+                .padding(14)
+                .modifier(CardFrame())
             }
             FlowRow(spacing: 8) {
                 ForEach(LibraryShelf.Filter.allCases) { f in
@@ -70,6 +85,71 @@ struct LibraryTab: View {
             }
         }
         .itemSheet($opened)
+        .sheet(isPresented: Binding(get: { reviewing != nil }, set: { if !$0 { reviewing = nil } })) {
+            if let batch = reviewing {
+                ReviewSheet(batch: batch) { item in
+                    reviewing = nil
+                    // Let the review close before the card opens.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { opened = item }
+                }
+                .environmentObject(store)
+                .environment(\.theme, AppTab.library.theme)
+            }
+        }
+    }
+}
+
+/// Look again: one old mark at a time. "I remember" sends it further off,
+/// "Again" brings it back tomorrow. A handful a day, then done.
+struct ReviewSheet: View {
+    let batch: [Review.Due]
+    let open: (OpenItem) -> Void
+    @EnvironmentObject private var store: Store
+    @Environment(\.dismiss) private var dismiss
+    @State private var index = 0
+    @State private var remembered = 0
+
+    var body: some View {
+        SheetFrame(title: "Look again", closeIdentifier: "wl-review-close") {
+            if index < batch.count {
+                let d = batch[index]
+                Text("\(index + 1) of \(batch.count)").font(Type.small).foregroundStyle(Paper.inkSoft)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(d.item.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Paper.accentInk)
+                    Text(d.mark.text).font(.system(size: 22, weight: .semibold, design: .rounded)).foregroundStyle(Paper.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("wl-review-mark-\(index)")
+                    Text("Written \(Clock.relative(d.mark.createdAt))").font(Type.small).foregroundStyle(Paper.inkSoft)
+                    if let s = d.mark.seconds, let badge = Clock.badge(s) {
+                        QuietButton(identifier: "wl-review-open") { open(OpenItem(id: d.item.id, start: s)) } label: {
+                            HStack(spacing: 6) { PlayMark(size: 14, weight: 1.6); Text("Watch it again at \(badge)") }
+                        }
+                    }
+                }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .modifier(CardFrame())
+                HStack(spacing: 12) {
+                    GoButton(title: "I remember", identifier: "wl-review-remember") { answer(d, true) }
+                    QuietButton(identifier: "wl-review-again") { answer(d, false) } label: { Text("Again") }
+                }
+                Text("I remember: it comes back later and later. Again: tomorrow.")
+                    .font(Type.small).foregroundStyle(Paper.inkSoft)
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Done for today").font(.system(size: 22, weight: .bold, design: .rounded)).foregroundStyle(Paper.accentInk)
+                        .accessibilityIdentifier("wl-review-done")
+                    Text("You remembered \(remembered) of \(batch.count).").font(Type.body).foregroundStyle(Paper.ink)
+                    GoButton(title: "Close", identifier: "wl-review-finish") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func answer(_ d: Review.Due, _ yes: Bool) {
+        store.review(d, remembered: yes)
+        if yes { remembered += 1 }
+        withAnimation(.easeOut(duration: 0.2)) { index += 1 }
     }
 }
 
@@ -151,6 +231,7 @@ struct TopicTile: View {
 struct TopicPage: View {
     let topicID: String
     @EnvironmentObject private var store: Store
+    @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
     @State private var opened: OpenItem?
 
@@ -165,6 +246,11 @@ struct TopicPage: View {
             if let topic {
                 ScreenTitle(title: topic.name, identifier: "wl-screen-topic")
                 Text(topic.summary).font(Type.body).foregroundStyle(Paper.inkSoft)
+                QuietButton(identifier: "wl-topic-more") {
+                    if let u = Research.youTube(topic.name) { openURL(u) }
+                } label: {
+                    HStack(spacing: 6) { Glyph(art: GlyphArt.find, size: 16).foregroundStyle(Paper.accent); Text("Find more on YouTube") }
+                }
                 let near = Connections.relatedTopics(topic, in: store.library)
                 if !near.isEmpty {
                     SectionTitle(text: "Related topics")

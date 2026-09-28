@@ -213,4 +213,16 @@ final class WatchLaterUITests: XCTestCase {
                       "back on the first card, the link is its own")
         XCTAssertTrue(absent(app, "wl-item-back"), "at the start of the trail there is no back")
     }
+
+    /// Test 7 — Learning more: old marks come back in Library's "Look again";
+    /// answered, they are done for today and the invitation goes away.
+    func testLookAgainBringsOldMarksBack() {
+        let app = launch(seeded: true)
+        tap(app, "tab-library")
+        XCTAssertTrue(tap(app, "wl-review-start", bringing: "wl-review-mark-0"), "the first old mark comes back")
+        XCTAssertTrue(tap(app, "wl-review-remember", bringing: "wl-review-mark-1"), "then the second")
+        XCTAssertTrue(tap(app, "wl-review-remember", bringing: "wl-review-done"), "two marks, then done for today")
+        XCTAssertTrue(tap(app, "wl-review-finish", bringing: "wl-screen-library"))
+        XCTAssertTrue(waitForAbsence(app, "wl-review-start"), "nothing more to look again at today")
+    }
 }

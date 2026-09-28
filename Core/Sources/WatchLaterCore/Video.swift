@@ -26,6 +26,10 @@ public struct Mark: Codable, Identifiable, Equatable, Hashable {
     public var seconds: Int?
     public var text: String
     public var createdAt: Date
+    // Since 0.6 — Review: when he last looked at it again, and how far along
+    // the widening gaps it is (see `Review`). Absent in older files.
+    public var reviewedAt: Date?
+    public var reviewStep: Int?
 
     public init(id: String = Video.newID(), seconds: Int?, text: String, createdAt: Date = Date()) {
         self.id = id
@@ -79,6 +83,11 @@ public struct Video: Codable, Identifiable, Equatable, Hashable {
     /// Cards this one links to, by id (made with "Link to…"). Links also come
     /// from `[[Title]]` in the note; see `Connections`.
     public var links: [String]
+
+    // Since 0.6 — learning more.
+    /// A summary, key points and questions, made on one of his devices. Kept
+    /// on the card so a device without Apple Intelligence sees it too.
+    public var digest: Digest?
 
     public init(id: String = Video.newID(), videoId: String?, url: String, title: String,
                 channel: String = "", seconds: Int? = nil, savedAt: Date = Date(),
@@ -139,6 +148,7 @@ public struct Video: Codable, Identifiable, Equatable, Hashable {
         imageURL = try c.decodeIfPresent(String.self, forKey: .imageURL)
         blurb = try c.decodeIfPresent(String.self, forKey: .blurb) ?? ""
         links = try c.decodeIfPresent([String].self, forKey: .links) ?? []
+        digest = try c.decodeIfPresent(Digest.self, forKey: .digest)
     }
 
     // MARK: What the card says

@@ -30,6 +30,7 @@ struct ItemView: View {
     @State private var tagsDraft = ""
     @State private var editingTags = false
     @State private var picking = false
+    @State private var shownAnswers: Set<Int> = []
     @FocusState private var focus: Field?
 
     enum Field { case time, text, body, tags }
@@ -48,6 +49,7 @@ struct ItemView: View {
                         composer(v)
                         marks(v)
                         said(v)
+                        learn(v)
                         notes(v)
                         connected(v)
                         tagRow(v)
@@ -391,6 +393,96 @@ struct ItemView: View {
             }
             .padding(12)
             .modifier(CardFrame())
+        }
+    }
+
+    // MARK: Learn
+
+    /// Summary, key points and questions — made on the device from what was
+    /// said — and a way to find more on the same thing.
+    private func learn(_ v: Video) -> some View {
+        let said = v.videoId.flatMap { store.transcripts[$0] }
+        let working = store.digesting[v.id]
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Learn").font(.system(size: 17, weight: .bold)).foregroundStyle(Paper.accentInk)
+            if let d = v.digest {
+                Text(d.summary).font(Type.body).foregroundStyle(Paper.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("wl-learn-summary")
+                if !d.points.isEmpty {
+                    Text("Key points").font(.system(size: 15, weight: .semibold)).foregroundStyle(Paper.accentInk)
+                    ForEach(Array(d.points.enumerated()), id: \.offset) { _, p in
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Circle().fill(Paper.accent).frame(width: 7, height: 7).offset(y: -2)
+                            Text(p).font(Type.body).foregroundStyle(Paper.ink)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                if !d.questions.isEmpty {
+                    Text("Check yourself").font(.system(size: 15, weight: .semibold)).foregroundStyle(Paper.accentInk)
+                        .padding(.top, 2)
+                    ForEach(Array(d.questions.enumerated()), id: \.offset) { i, q in
+                        Button {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                if shownAnswers.contains(i) { shownAnswers.remove(i) } else { shownAnswers.insert(i) }
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(q.question).font(.system(size: 16, weight: .semibold)).foregroundStyle(Paper.ink)
+                                    .multilineTextAlignment(.leading)
+                                if shownAnswers.contains(i) {
+                                    Text(q.answer).font(Type.body).foregroundStyle(Paper.accentInk)
+                                        .multilineTextAlignment(.leading)
+                                        .accessibilityIdentifier("wl-learn-a-\(i)")
+                                } else {
+                                    Text("Tap to see the answer").font(Type.small).foregroundStyle(Paper.inkSoft)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                            .modifier(CardFrame())
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("wl-learn-q-\(i)")
+                    }
+                }
+                Text("Made by Apple Intelligence on your device, \(Clock.relative(d.madeAt)). It can get things wrong.")
+                    .font(Type.small).foregroundStyle(Paper.inkSoft)
+            } else if said != nil || v.kind == .video {
+                // The main button is always full colour; pressed too early, it
+                // says what is missing underneath.
+                GoButton(title: working == nil ? "Summarise" : "Working…", identifier: "wl-learn-go") {
+                    store.makeDigest(v)
+                }
+                if let working {
+                    Text(working).font(Type.small).foregroundStyle(Paper.inkSoft)
+                        .accessibilityIdentifier("wl-learn-working")
+                } else if let why = store.digestTrouble[v.id] {
+                    Text(why).font(Type.body).foregroundStyle(Paper.amber)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("wl-learn-why")
+                } else {
+                    Text("A short summary, the key points and a few questions to check yourself — made on this device from what was said.")
+                        .font(Type.small).foregroundStyle(Paper.inkSoft)
+                }
+            }
+            HStack(spacing: 10) {
+                if v.digest != nil {
+                    QuietButton(identifier: "wl-learn-again") { store.makeDigest(v) } label: {
+                        Text(working == nil ? "Summarise again" : "Working…")
+                    }
+                }
+                QuietButton(identifier: "wl-learn-more") {
+                    if let u = Research.youTube(Research.query(for: v)) { openURL(u) }
+                } label: {
+                    HStack(spacing: 6) { Glyph(art: GlyphArt.find, size: 16).foregroundStyle(Paper.accent); Text("Find more on YouTube") }
+                }
+            }
+            if v.digest != nil, working == nil, let why = store.digestTrouble[v.id] {
+                Text(why).font(Type.body).foregroundStyle(Paper.amber)
+            }
         }
     }
 

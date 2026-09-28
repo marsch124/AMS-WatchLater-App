@@ -26,6 +26,7 @@
 		BDD5681780064683B9F9CEF7 /* TabScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA24A9500A1476E1438F1160 /* TabScreens.swift */; };
 		BEEA5322B55849275B46AAE3 /* TranscriptFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B086522C98790536A3A462B3 /* TranscriptFetcher.swift */; };
 		C317A53F834231735B35A3C7 /* AMSWatchLaterShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 22BD89B003CF118F54F5AF3E /* AMSWatchLaterShare.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		E901050ECE5749743BA3782F /* Summariser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4DCC6D4E6323FB1C65538BE /* Summariser.swift */; };
 		F22D726748D99E1292A93363 /* Glyphs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 858F086709B91534488E4363 /* Glyphs.swift */; };
 		FD60276AA6B41D6BFDAE1DD2 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4156E4B940F2AEE5844202C7 /* Player.swift */; };
 /* End PBXBuildFile section */
@@ -82,6 +83,7 @@
 		C918B1D404B9CA17CE325B22 /* Marks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Marks.swift; sourceTree = "<group>"; };
 		D719F705B3A4B8E90666F6F8 /* AMSWatchLaterUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AMSWatchLaterUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E3E71EBBEB17FA9051AF8D0E /* YouTubeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeClient.swift; sourceTree = "<group>"; };
+		E4DCC6D4E6323FB1C65538BE /* Summariser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Summariser.swift; sourceTree = "<group>"; };
 		F32F578ADC46452945771CE8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F75E2D37C9399475D78BCFEE /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -118,6 +120,7 @@
 				0C5A18771B0B3E45FBA975F9 /* RootView.swift */,
 				63E0B4F4B32FE380920F4DF5 /* Sheets.swift */,
 				F75E2D37C9399475D78BCFEE /* Store.swift */,
+				E4DCC6D4E6323FB1C65538BE /* Summariser.swift */,
 				8DA7243FB1A6D23205013DF6 /* Tabs.swift */,
 				BA24A9500A1476E1438F1160 /* TabScreens.swift */,
 				63BDC8003370226C1F5888A1 /* Theme.swift */,
@@ -333,6 +336,7 @@
 				661CAD3E5AAD570D97EDDF62 /* RootView.swift in Sources */,
 				252723E03656D8EB10339783 /* Sheets.swift in Sources */,
 				32D68139595A9037894C1405 /* Store.swift in Sources */,
+				E901050ECE5749743BA3782F /* Summariser.swift in Sources */,
 				BDD5681780064683B9F9CEF7 /* TabScreens.swift in Sources */,
 				4800FF38B2F973879F2A8A91 /* Tabs.swift in Sources */,
 				07C04E4640839FCCF3DCA139 /* Theme.swift in Sources */,
@@ -504,7 +508,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.5;
+				MARKETING_VERSION = 0.6;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -570,7 +574,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.5;
+				MARKETING_VERSION = 0.6;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

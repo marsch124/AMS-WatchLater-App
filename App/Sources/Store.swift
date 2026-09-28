@@ -13,6 +13,10 @@ final class Store: ObservableObject {
     @Published private(set) var thumbTick = 0     // bumped when a picture lands
     /// What was said, by video id — beside the list, so both devices share it.
     @Published private(set) var transcripts: [String: Transcript] = [:]
+    /// A summary being made, per card: what it is doing now ("Reading part 2 of 5…").
+    @Published var digesting: [String: String] = [:]
+    /// Why the last try for a card did not work — said under its button.
+    @Published var digestTrouble: [String: String] = [:]
     let transcriptShelf: TranscriptShelf
     /// The hidden player that fetches captions (never in a test run).
     let fetcher: TranscriptFetcher
@@ -126,8 +130,18 @@ final class Store: ObservableObject {
         var lecture = v("seedlecture", "Basics of Biology · Lecture 1", "Peterson Academy", 61 * 60, daysAgo: 6)
         lecture.watchedAt = Date().addingTimeInterval(-86_400)
         lecture.tags = ["Brain & body", "Biology"]
-        lecture.marks = [Mark(seconds: 1390, text: "Insulin is the master switch for storing energy"),
-                         Mark(seconds: 2210, text: "Mitochondria: why cold and exercise help")]
+        // Written five days ago, so Review has them to bring back.
+        let fiveDaysAgo = Date().addingTimeInterval(-5 * 86_400)
+        lecture.marks = [Mark(seconds: 1390, text: "Insulin is the master switch for storing energy", createdAt: fiveDaysAgo),
+                         Mark(seconds: 2210, text: "Mitochondria: why cold and exercise help", createdAt: fiveDaysAgo)]
+        lecture.digest = Digest(
+            summary: "A first lecture on how the body stores and uses energy. Insulin decides whether energy is stored or burned, and the mitochondria turn food into usable energy. Cold and exercise both make the body build more of them.",
+            points: ["Insulin is the switch between storing and burning energy.",
+                     "Mitochondria turn food into the energy cells use.",
+                     "Cold exposure and exercise both grow new mitochondria."],
+            questions: [.init(question: "What does insulin decide?", answer: "Whether the body stores energy or burns it."),
+                        .init(question: "Why do cold and exercise help?", answer: "They make the body build more mitochondria.")],
+            madeAt: Date().addingTimeInterval(-86_400))
         lecture.body = "Ask about insulin and sleep."
         return Library(items: [
             v("seedfour000", "Four minutes on knots", "Rope Club", 4 * 60, daysAgo: 0),
@@ -454,6 +468,45 @@ final class Store: ObservableObject {
         say("Mark removed", undo: { [weak self] in
             self?.stamp(id) { $0.marks.append(mark) }
         })
+    }
+
+    // MARK: Learning more
+
+    /// Summary, key points and questions from what was said, on this device.
+    func makeDigest(_ v: Video) {
+        digestTrouble[v.id] = nil
+        guard let vid = v.videoId, let t = transcripts[vid], !t.isEmpty else {
+            digestTrouble[v.id] = "A summary is made from what was said, and this one has no subtitles yet."
+            return
+        }
+        guard Reading.wordCount(t.lines) >= Reading.fewestWords else {
+            digestTrouble[v.id] = "Too little is said in this video for a summary worth reading."
+            return
+        }
+        let ready = Summariser.readiness
+        guard ready == .ready else { digestTrouble[v.id] = ready.why; return }
+        guard digesting[v.id] == nil else { return }
+        digesting[v.id] = "Starting…"
+        let id = v.id, title = v.title
+        Task { @MainActor in
+            do {
+                let d = try await Summariser.digest(t, title: title) { [weak self] step in self?.digesting[id] = step }
+                stamp(id) { $0.digest = d }
+                say("Summary ready")
+            } catch {
+                digestTrouble[id] = error.localizedDescription
+            }
+            digesting[id] = nil
+        }
+    }
+
+    /// Review: "I remember" moves the mark to the next, longer gap; "Again"
+    /// brings it back tomorrow.
+    func review(_ due: Review.Due, remembered: Bool) {
+        stamp(due.item.id) { v in
+            guard let i = v.marks.firstIndex(where: { $0.id == due.mark.id }) else { return }
+            v.marks[i] = remembered ? Review.remembered(v.marks[i]) : Review.again(v.marks[i])
+        }
     }
 
     // MARK: Connecting
