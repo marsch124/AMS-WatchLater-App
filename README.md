@@ -35,4 +35,11 @@ Thumbnails are per-device, in Caches.
   the app fills title/length next time it looks) or, without iCloud, into the
   app group inbox.
 - Mac: Add sheet (paste, or "Take Safari's page" via Apple events), and the
-  URL scheme `amswatchlater://add?url=…` for Raycast.
+  URL scheme `amswatchlater://add?url=…`.
+- Mac, one keystroke: `~/Applications/Add to WatchLater.app` (Raycast), built by
+  `tools/launcher/build.sh` from `add-to-watchlater.applescript` — reads Safari's
+  (or Chrome's) front page and opens `amswatchlater://add?url=…` in the background.
+
+The old web app (Node engine on :7821, Dock/Raycast applets, iCloud drop folder)
+was retired on 2026-09-28: folder `Legacy/AMS WatchLater (web app)`, GitHub repo
+`AMS-WatchLater` archived. Nothing was left in it that this app does not have.
