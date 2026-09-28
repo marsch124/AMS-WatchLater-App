@@ -12,10 +12,6 @@ final class WatchLaterUITests: XCTestCase {
     private func launch(seeded: Bool) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["-uiTesting"]          // a fresh, throwaway list, no network
-        // The Mac remembers a test copy's windows; one that was killed with no
-        // window open came back with none, and every Mac test failed on an
-        // empty screen (2026-09-28). A test starts from a clean desk.
-        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
         if seeded { app.launchArguments += ["-seed"] }  // three videos of known lengths
         app.launch()
         return app

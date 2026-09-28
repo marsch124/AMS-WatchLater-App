@@ -68,7 +68,9 @@ struct MainView: View {
         .animation(.easeOut(duration: 0.2), value: store.toast)
         // The tab bar stays at the bottom, under the keyboard — riding up on
         // top of it (seen in Find, 2026-09-28) hid the results.
+        #if os(iOS)
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        #endif
     }
 }
 
