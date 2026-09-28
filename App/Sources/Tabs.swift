@@ -151,11 +151,37 @@ struct ItemSheet: ViewModifier {
 
     func body(content: Content) -> some View {
         content.sheet(item: $item) { o in
-            ItemView(itemID: o.id, start: o.start)
+            ItemStack(first: o)
                 .environmentObject(store)
                 .environment(\.theme, theme)
                 .tint(theme.accent)
         }
+    }
+}
+
+/// A card's page — and the cards he walks to from it. Tapping a connected
+/// card opens it here; the back button returns along the same trail.
+struct ItemStack: View {
+    let first: OpenItem
+    @EnvironmentObject private var store: Store
+    @State private var trail: [String] = []
+
+    var body: some View {
+        let id = trail.last ?? first.id
+        ZStack(alignment: .bottom) {
+            ItemView(itemID: id, start: trail.isEmpty ? first.start : nil,
+                     back: trail.isEmpty ? nil : { trail.removeLast() },
+                     open: { next in if next != id { trail.append(next) } })
+                .id("\(trail.count)-\(id)")
+            // The page covers the main screen's message, so it has its own —
+            // or "Removed · Undo" happens where nobody can see it.
+            if let t = store.toast {
+                ToastView(toast: t) { store.toast = nil }
+                    .padding(.bottom, 30)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: store.toast)
     }
 }
 

@@ -268,3 +268,37 @@ struct KindMark: View {
         if kind.isTimed { PlayMark(size: size, weight: weight) } else { PageMark(size: size, weight: weight) }
     }
 }
+
+/// Back to the card before — a hand-drawn chevron.
+struct BackMark: View {
+    var size: CGFloat = 16; var weight: CGFloat = 2.6
+    var body: some View { StrokeMark(shape: Chevron(), size: size, weight: weight) }
+    struct Chevron: Shape {
+        func path(in r: CGRect) -> Path {
+            var p = Path()
+            p.move(to: CGPoint(x: r.maxX * 0.68, y: r.minY + r.height * 0.12))
+            p.addLine(to: CGPoint(x: r.maxX * 0.3, y: r.midY))
+            p.addLine(to: CGPoint(x: r.maxX * 0.68, y: r.maxY - r.height * 0.12))
+            return p
+        }
+    }
+}
+
+/// Two links of a chain, slightly tilted — "connected".
+struct LinkMark: View {
+    var size: CGFloat = 18; var weight: CGFloat = 2.2
+    var body: some View { StrokeMark(shape: Chain(), size: size, weight: weight) }
+    struct Chain: Shape {
+        func path(in r: CGRect) -> Path {
+            var p = Path()
+            let w = r.width * 0.56, h = r.height * 0.34, rad = h / 2
+            p.addRoundedRect(in: CGRect(x: r.minX + r.width * 0.02, y: r.midY - h * 0.95, width: w, height: h),
+                             cornerSize: CGSize(width: rad, height: rad))
+            p.addRoundedRect(in: CGRect(x: r.maxX - w - r.width * 0.02, y: r.midY - h * 0.05, width: w, height: h),
+                             cornerSize: CGSize(width: rad, height: rad))
+            return p.applying(CGAffineTransform(translationX: -r.midX, y: -r.midY)
+                .concatenating(CGAffineTransform(rotationAngle: -0.35))
+                .concatenating(CGAffineTransform(translationX: r.midX, y: r.midY)))
+        }
+    }
+}

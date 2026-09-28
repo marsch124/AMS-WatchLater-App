@@ -75,6 +75,11 @@ public struct Video: Codable, Identifiable, Equatable, Hashable {
     /// A page's own one-paragraph description (og:description).
     public var blurb: String
 
+    // Since 0.5 — connecting.
+    /// Cards this one links to, by id (made with "Link to…"). Links also come
+    /// from `[[Title]]` in the note; see `Connections`.
+    public var links: [String]
+
     public init(id: String = Video.newID(), videoId: String?, url: String, title: String,
                 channel: String = "", seconds: Int? = nil, savedAt: Date = Date(),
                 isShort: Bool = false, tags: [String] = [], note: String = "",
@@ -85,6 +90,7 @@ public struct Video: Codable, Identifiable, Equatable, Hashable {
         self.body = ""
         self.imageURL = nil
         self.blurb = ""
+        self.links = []
         self.videoId = videoId
         self.url = url
         self.title = title
@@ -132,6 +138,7 @@ public struct Video: Codable, Identifiable, Equatable, Hashable {
         body = try c.decodeIfPresent(String.self, forKey: .body) ?? ""
         imageURL = try c.decodeIfPresent(String.self, forKey: .imageURL)
         blurb = try c.decodeIfPresent(String.self, forKey: .blurb) ?? ""
+        links = try c.decodeIfPresent([String].self, forKey: .links) ?? []
     }
 
     // MARK: What the card says

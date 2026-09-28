@@ -125,7 +125,7 @@ final class Store: ObservableObject {
         // Library, Topics and Find tabs have something to show in a test run.
         var lecture = v("seedlecture", "Basics of Biology · Lecture 1", "Peterson Academy", 61 * 60, daysAgo: 6)
         lecture.watchedAt = Date().addingTimeInterval(-86_400)
-        lecture.tags = ["Brain & body"]
+        lecture.tags = ["Brain & body", "Biology"]
         lecture.marks = [Mark(seconds: 1390, text: "Insulin is the master switch for storing energy"),
                          Mark(seconds: 2210, text: "Mitochondria: why cold and exercise help")]
         lecture.body = "Ask about insulin and sleep."
@@ -453,6 +453,24 @@ final class Store: ObservableObject {
         stamp(id) { $0.marks.removeAll { $0.id == mark.id } }
         say("Mark removed", undo: { [weak self] in
             self?.stamp(id) { $0.marks.append(mark) }
+        })
+    }
+
+    // MARK: Connecting
+
+    /// "Link to…": the link lives on the card it was made from; the other card
+    /// learns about it by looking (see `Connections.all`).
+    func link(_ from: String, to other: String) {
+        guard from != other, current(from)?.links.contains(other) == false else { return }
+        stamp(from) { $0.links.append(other) }
+        say("Linked")
+    }
+
+    func unlink(_ from: String, _ other: String) {
+        guard let i = current(from)?.links.firstIndex(of: other) else { return }
+        stamp(from) { $0.links.removeAll { $0 == other } }
+        say("Link removed", undo: { [weak self] in
+            self?.stamp(from) { v in if !v.links.contains(other) { v.links.insert(other, at: min(i, v.links.count)) } }
         })
     }
 

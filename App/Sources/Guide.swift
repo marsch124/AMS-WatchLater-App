@@ -24,6 +24,16 @@ enum Guide {
 
     /// Newest first. Every release adds an entry — never edits an old one.
     static let releases: [Release] = [
+        Release(version: "0.5", date: "2026-09-28",
+                headline: "Connect what you saved",
+                lines: [
+                    "A card's page has a new part, Connected. Link to… picks another card and links the two. The other card shows the link too — you only make it once.",
+                    "Writing [[a card's title]] in a note links as well, the way Obsidian does it, so the links survive the export to Obsidian later.",
+                    "Tap a connected card and it opens right there, with a back button to where you came from. You can walk from card to card.",
+                    "Maybe related suggests up to three cards that share a tag, a channel or words in the title. One tap on Link connects them.",
+                    "A topic's page shows its related topics — the ones that share cards with it.",
+                    "The message with Undo (after removing a mark or a link) now shows on a card's page too; before, it was hidden behind it.",
+                ]),
         Release(version: "0.4", date: "2026-09-28",
                 headline: "Find what was said in a video",
                 lines: [
@@ -89,6 +99,8 @@ enum Guide {
          "Save this search keeps what you typed as a chip at the top of Find, on both devices. Tap a chip to run it again. While it is chosen, a small red cross removes it; Undo brings it back."),
         ("What was said",
          "YouTube only gives subtitles to its own player, so the app plays each video once in a tiny, silent, invisible player with subtitles on and keeps the text. It does this by itself, one video at a time, while the app is open — the list does not change. Videos without subtitles are tried again after a week. The text is kept beside your list in iCloud, so the other device has it too. Settings › What was said shows how many videos have it; tap it to look again now."),
+        ("Connected",
+         "On a card's page, Link to… connects it with another card; the other card shows the link by itself. Writing [[the other card's title]] in the note links too. → is a link from this card, ← one to it, ↔ both ways. Tap a connected card to open it in the same page; the back button returns. The red cross removes a link you made there, and Undo brings it back. Maybe related suggests cards that share a tag, a channel or title words — Link connects them in one tap. A topic's page lists related topics: the number is how many cards they share."),
         ("A card's own page",
          "Tap a card's picture or title. A video plays right on the page (a few videos only play on YouTube; then there is a button for that). Under it you can mark moments, write notes and set tags."),
         ("Marks",

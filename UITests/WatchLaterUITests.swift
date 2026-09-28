@@ -159,4 +159,23 @@ final class WatchLaterUITests: XCTestCase {
         tap(app, "wl-hit-seed-seedfifteen")
         XCTAssertTrue(waitFor(app, "wl-said-toggle"), "the video's page opens, with What was said")
     }
+
+    /// Test 6 — Connecting: link one card to another, walk to it, and the
+    /// other card shows the link back; the back button returns.
+    func testALinkConnectsBothCards() {
+        let app = launch(seeded: true)
+        tap(app, "wl-open-seed-seedfifteen")
+        XCTAssertTrue(absent(app, "wl-conn-seed-seedfour000"), "nothing is connected yet")
+        tap(app, "wl-link-add")
+        tap(app, "wl-link-pick-seed-seedfour000")
+        XCTAssertTrue(waitFor(app, "wl-conn-seed-seedfour000"), "the linked card is listed")
+
+        tap(app, "wl-conn-seed-seedfour000")
+        XCTAssertTrue(waitFor(app, "wl-item-back"), "the linked card opens, with a way back")
+        XCTAssertTrue(waitFor(app, "wl-conn-seed-seedfifteen"), "and it links back by itself")
+
+        tap(app, "wl-item-back")
+        XCTAssertTrue(waitFor(app, "wl-link-remove-seed-seedfour000"), "back on the first card, the link is its own")
+        XCTAssertTrue(absent(app, "wl-item-back"), "at the start of the trail there is no back")
+    }
 }

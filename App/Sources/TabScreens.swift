@@ -165,6 +165,26 @@ struct TopicPage: View {
             if let topic {
                 ScreenTitle(title: topic.name, identifier: "wl-screen-topic")
                 Text(topic.summary).font(Type.body).foregroundStyle(Paper.inkSoft)
+                let near = Connections.relatedTopics(topic, in: store.library)
+                if !near.isEmpty {
+                    SectionTitle(text: "Related topics")
+                    FlowRow(spacing: 8) {
+                        ForEach(near, id: \.topic.id) { r in
+                            NavigationLink(value: r.topic.id) {
+                                HStack(spacing: 6) {
+                                    Text(r.topic.name).font(Type.pill).foregroundStyle(Paper.ink)
+                                    Text("\(r.shared)").font(Type.small).foregroundStyle(Paper.accent)
+                                }
+                                .padding(.horizontal, 13).padding(.vertical, 8)
+                                .background(Capsule().fill(Paper.card).overlay(Capsule().strokeBorder(Paper.line)))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("wl-topic-near-\(r.topic.id)")
+                        }
+                    }
+                    Text("The number is how many cards the two topics share.")
+                        .font(Type.small).foregroundStyle(Paper.inkSoft)
+                }
                 let waiting = topic.items.filter(\.isOpen), done = topic.items.filter { !$0.isOpen }
                 if !waiting.isEmpty {
                     SectionTitle(text: "Waiting · \(waiting.count)")

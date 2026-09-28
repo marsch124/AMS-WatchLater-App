@@ -7,9 +7,14 @@ struct ItemView: View {
     @EnvironmentObject private var store: Store
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.theme) private var theme
     let itemID: String
     /// Where the video starts — a "said at" result in Find opens it right there.
     var start: Int? = nil
+    /// Set when this card was reached from another one: goes back to it.
+    var back: (() -> Void)? = nil
+    /// Opens a connected card in the same page.
+    var open: ((String) -> Void)? = nil
 
     @StateObject private var player = PlayerHandle()
     @State private var saidOpen = false
@@ -24,6 +29,7 @@ struct ItemView: View {
     @State private var saveWork: Task<Void, Never>?
     @State private var tagsDraft = ""
     @State private var editingTags = false
+    @State private var picking = false
     @FocusState private var focus: Field?
 
     enum Field { case time, text, body, tags }
@@ -43,6 +49,7 @@ struct ItemView: View {
                         marks(v)
                         said(v)
                         notes(v)
+                        connected(v)
                         tagRow(v)
                         doneRow(v)
                     }
@@ -61,6 +68,13 @@ struct ItemView: View {
             bodyLoaded = true
             if v.kind.isTimed { store.started(v) }
         }
+        .sheet(isPresented: $picking) {
+            if let v = item {
+                LinkPicker(from: v) { other in store.link(v.id, to: other); picking = false }
+                    .environmentObject(store)
+                    .environment(\.theme, theme)
+            }
+        }
         .onDisappear {
             saveWork?.cancel()
             store.setBody(itemID, body_)
@@ -72,6 +86,15 @@ struct ItemView: View {
 
     private func topBar(_ v: Video) -> some View {
         HStack(spacing: 10) {
+            if let back {
+                Button(action: back) {
+                    BackMark(size: 16).foregroundStyle(Paper.ink)
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(Paper.card).overlay(Circle().strokeBorder(Paper.line)))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("wl-item-back")
+            }
             Text(v.kind.title.dropLast().uppercased())
                 .font(.system(size: 15, weight: .bold)).tracking(0.8).foregroundStyle(Paper.accent)
             Spacer()
@@ -401,6 +424,81 @@ struct ItemView: View {
             .padding(10)
             .background(RoundedRectangle(cornerRadius: 12).fill(Paper.card)
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Paper.line)))
+        }
+    }
+
+    // MARK: Connected
+
+    private func connected(_ v: Video) -> some View {
+        let links = Connections.all(v, in: store.library)
+        let related = Connections.related(to: v, in: store.library)
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text(links.isEmpty ? "Connected" : "Connected · \(links.count)")
+                    .font(.system(size: 17, weight: .bold)).foregroundStyle(Paper.accentInk)
+                Spacer()
+                QuietButton(identifier: "wl-link-add") { picking = true } label: {
+                    HStack(spacing: 6) { LinkMark(size: 17).foregroundStyle(Paper.accent); Text("Link to…") }
+                }
+            }
+            if links.isEmpty {
+                Text("Link this to another card, or write [[its title]] in the note. The other card links back by itself.")
+                    .font(Type.small).foregroundStyle(Paper.inkSoft)
+            }
+            ForEach(links) { l in
+                HStack(spacing: 10) {
+                    Button { open?(l.item.id) } label: {
+                        HStack(spacing: 10) {
+                            Text(l.way == .to ? "→" : l.way == .from ? "←" : "↔")
+                                .font(.system(size: 17, weight: .bold)).foregroundStyle(Paper.accent)
+                                .frame(width: 20)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(l.item.title.isEmpty ? l.item.url : l.item.title)
+                                    .font(.system(size: 16, weight: .semibold)).foregroundStyle(Paper.ink)
+                                    .lineLimit(2).multilineTextAlignment(.leading)
+                                Text(l.item.isOpen ? "Waiting" : "In the Library")
+                                    .font(Type.small).foregroundStyle(Paper.inkSoft)
+                            }
+                            Spacer(minLength: 4)
+                            Text("›").font(.system(size: 20, weight: .semibold)).foregroundStyle(Paper.accent)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("wl-conn-\(l.item.id)")
+                    // Remove: one red, quiet, last — only for a link made here.
+                    if l.made {
+                        Button { store.unlink(v.id, l.item.id) } label: {
+                            CrossMark(size: 13).foregroundStyle(Paper.danger)
+                                .frame(width: 32, height: 32)
+                                .background(Circle().strokeBorder(Paper.line))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("wl-link-remove-\(l.item.id)")
+                    }
+                }
+                .padding(12)
+                .modifier(CardFrame())
+            }
+            if !related.isEmpty {
+                Text("Maybe related").font(.system(size: 15, weight: .semibold)).foregroundStyle(Paper.inkSoft)
+                    .padding(.top, 4)
+                ForEach(related) { x in
+                    HStack(spacing: 10) {
+                        Button { open?(x.id) } label: {
+                            Text(x.title.isEmpty ? x.url : x.title)
+                                .font(Type.body).foregroundStyle(Paper.ink)
+                                .lineLimit(2).multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("wl-related-\(x.id)")
+                        QuietButton(identifier: "wl-related-link-\(x.id)") { store.link(v.id, to: x.id) } label: {
+                            HStack(spacing: 5) { LinkMark(size: 15).foregroundStyle(Paper.accent); Text("Link") }
+                        }
+                    }
+                }
+            }
         }
     }
 

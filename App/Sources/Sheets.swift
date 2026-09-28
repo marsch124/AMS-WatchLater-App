@@ -210,3 +210,40 @@ struct GuideSheet: View {
         }
     }
 }
+
+/// "Link to…": every other card, newest first, with a search box. One tap
+/// links and closes.
+struct LinkPicker: View {
+    let from: Video
+    let pick: (String) -> Void
+    @EnvironmentObject private var store: Store
+    @State private var query = ""
+
+    var body: some View {
+        let already = Set(from.links)
+        let needle = Shelf.fold(query)
+        let cards = store.library.live
+            .filter { $0.id != from.id && !already.contains($0.id) }
+            .filter { needle.count < 2 || Shelf.fold($0.title + " " + $0.channel + " " + $0.tags.joined(separator: " ")).contains(needle) }
+            .sorted { ($0.watchedAt ?? $0.savedAt) > ($1.watchedAt ?? $1.savedAt) }
+        SheetFrame(title: "Link to…", closeIdentifier: "wl-link-close") {
+            HStack(spacing: 10) {
+                Glyph(art: GlyphArt.find, size: 20).foregroundStyle(Paper.accent)
+                TextField("Title, channel or tag", text: $query)
+                    .textFieldStyle(.plain).font(.system(size: 17)).foregroundStyle(Paper.ink)
+                    .accessibilityIdentifier("wl-link-find")
+            }
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Paper.card)
+                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Paper.accent, lineWidth: 1.4)))
+            if cards.isEmpty {
+                Text(needle.count < 2 ? "Nothing else is saved yet." : "No card matches “\(query)”.")
+                    .font(Type.body).foregroundStyle(Paper.inkSoft)
+            }
+            ForEach(cards.prefix(80)) { v in
+                ItemRow(item: v) { pick(v.id) }
+                    .accessibilityIdentifier("wl-link-pick-\(v.id)")
+            }
+        }
+    }
+}
