@@ -30,7 +30,9 @@ struct CardView: View {
         if !video.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { parts.append("notes") }
         return parts.joined(separator: " · ")
     }
-    private var edge: Color { video.isPinned ? Paper.accent : (stale ? Paper.amber : Paper.line) }
+    private var edge: AnyShapeStyle {
+        video.isPinned ? AnyShapeStyle(Paper.accent) : AnyShapeStyle(stale ? Paper.amber : Paper.line)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -135,7 +137,7 @@ struct CardView: View {
                 }
                 Spacer()
                 HStack {
-                    cornerButton(on: video.isTogether, tint: Paper.pair, mark: { PairMark(size: 16, filled: video.isTogether) }, id: "wl-pair-\(video.id)") { store.toggleTogether(video) }
+                    cornerButton(on: video.isTogether, tint: AnyShapeStyle(Paper.pair), mark: { PairMark(size: 16, filled: video.isTogether) }, id: "wl-pair-\(video.id)") { store.toggleTogether(video) }
                     Spacer()
                 }
             }
@@ -156,13 +158,13 @@ struct CardView: View {
         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 14, topTrailingRadius: 14))
     }
 
-    private func cornerButton<M: View>(on: Bool, tint: Color = Paper.accent, @ViewBuilder mark: () -> M,
+    private func cornerButton<M: View>(on: Bool, tint: AnyShapeStyle = AnyShapeStyle(Paper.accent), @ViewBuilder mark: () -> M,
                                        id: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             mark()
                 .foregroundStyle(on ? Paper.onAccent : Paper.ink)
                 .frame(width: 30, height: 30)
-                .background(Circle().fill(on ? tint : Paper.card.opacity(0.92)))
+                .background(Circle().fill(on ? tint : AnyShapeStyle(Paper.card.opacity(0.92))))
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(id)
@@ -259,7 +261,7 @@ struct CardView: View {
         HStack(spacing: 8) {
             Text("Three months. Still?").font(Type.body).foregroundStyle(Paper.amber)
             Spacer()
-            GoButton(title: "Keep", tint: Paper.amber, identifier: "wl-keep-\(video.id)") { store.keep(video) }
+            GoButton(title: "Keep", tint: AnyShapeStyle(Paper.amber), identifier: "wl-keep-\(video.id)") { store.keep(video) }
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 10).fill(Paper.amberSoft))

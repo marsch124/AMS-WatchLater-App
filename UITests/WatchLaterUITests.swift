@@ -12,6 +12,10 @@ final class WatchLaterUITests: XCTestCase {
     private func launch(seeded: Bool) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["-uiTesting"]          // a fresh, throwaway list, no network
+        // The Mac remembers a test copy's windows; one that was killed with no
+        // window open came back with none, and every Mac test failed on an
+        // empty screen (2026-09-28). A test starts from a clean desk.
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
         if seeded { app.launchArguments += ["-seed"] }  // three videos of known lengths
         app.launch()
         return app
@@ -30,6 +34,11 @@ final class WatchLaterUITests: XCTestCase {
             if element(app, id) != nil { return true }
             usleep(200_000)
         }
+        // Facts before theories: when a wait fails, say what WAS on screen.
+        // The Mac's menu bar alone fills pages, so show the windows only.
+        let windows = app.windows.allElementsBoundByIndex
+        print("WL-TREE (waiting for \(id)): \(windows.count) window(s)")
+        for w in windows.prefix(3) { print(String(w.debugDescription.prefix(4000))) }
         return false
     }
 
@@ -59,6 +68,15 @@ final class WatchLaterUITests: XCTestCase {
     }
 
     private func absent(_ app: XCUIApplication, _ id: String) -> Bool { element(app, id) == nil }
+
+    private func waitForAbsence(_ app: XCUIApplication, _ id: String, timeout: TimeInterval = 10) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if absent(app, id) { return true }
+            usleep(200_000)
+        }
+        return false
+    }
 
     /// Test 1 — a fresh list says so, and the one big button is there.
     func testAFreshListSaysNothingIsWaiting() {
@@ -104,5 +122,19 @@ final class WatchLaterUITests: XCTestCase {
 
         XCTAssertTrue(waitFor(app, "wl-mark-jump-2"), "the new mark is listed, after 6:52 by its time")
         XCTAssertTrue(absent(app, "wl-mark-missing"), "and the reason is gone")
+    }
+
+    /// Test 4 — the tabs: a card ticked on Watch leaves Watch and turns up in
+    /// the Library tab.
+    func testATickedCardMovesToTheLibraryTab() {
+        let app = launch(seeded: true)
+        XCTAssertTrue(waitFor(app, "wl-open-seed-seedfour000"), "the four-minute video waits on Watch")
+        tap(app, "wl-tick-seed-seedfour000")
+        XCTAssertTrue(waitForAbsence(app, "wl-open-seed-seedfour000"), "ticked, it leaves Watch")
+
+        tap(app, "tab-library")
+        XCTAssertTrue(waitFor(app, "wl-screen-library"), "the Library tab opens")
+        XCTAssertTrue(waitFor(app, "wl-open-seed-seedfour000"), "and the ticked video is in it")
+        XCTAssertTrue(waitFor(app, "wl-open-seed-seedlecture"), "beside what was there already")
     }
 }

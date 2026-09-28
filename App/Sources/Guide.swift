@@ -24,6 +24,16 @@ enum Guide {
 
     /// Newest first. Every release adds an entry — never edits an old one.
     static let releases: [Release] = [
+        Release(version: "0.3", date: "2026-09-28",
+                headline: "Five tabs, each in its own colour",
+                lines: [
+                    "The app has a tab bar now, the way AMS Instructions does: Watch, Library, Topics, Find and Settings.",
+                    "Every tab has its own colour — green, ochre, purple, blue, slate — and everything on it wears that colour: the heading, the section titles, the buttons and pills, even the page of a card you open from there. You can always tell where you are.",
+                    "Watch is the list, by the time you have. Library is what you have watched or read, grouped by when, with your marks and notes.",
+                    "Topics collects things by subject: every tag you give a card becomes a topic, showing what is still waiting and what is already in the Library.",
+                    "Find searches everything at once — titles, channels, tags, your marks and your notes, in the list and the Library — and shows where it found the words, with a mark's time.",
+                    "Settings holds your data, import and backup, how to save from the phone, How it works and What's new.",
+                ]),
         Release(version: "0.2", date: "2026-09-28",
                 headline: "Notes while watching — and anything with a link",
                 lines: [
@@ -45,9 +55,27 @@ enum Guide {
                 ]),
     ]
 
+    /// Settings › Save from the phone. Every word checked against the real
+    /// share sheet — YouTube's own panel hides the system one behind More.
+    static let shareSteps: [String] = [
+        "In YouTube, tap Share under the video.",
+        "YouTube shows its own row of apps first. Scroll it to the end and tap More.",
+        "Tap WatchLater. The video is on your list — on the Mac too — before you are back in YouTube.",
+        "The first time, WatchLater may be missing from the row: tap More at the end of the app row, switch WatchLater on, and it stays.",
+        "Safari and other apps: Share, then WatchLater. Articles and any page work the same way.",
+    ]
+
     static let howItWorks: [(String, String)] = [
         ("What it is for",
          "A list of things you mean to watch or read — YouTube videos, articles, podcasts, any page — sorted by the time you have, not by the date you saved them. Choose 5 min, 20 min or An hour and only what fits is shown. What you have been through moves to the Library, with everything you wrote about it."),
+        ("Getting around",
+         "Five tabs along the bottom, each with its own colour. Watch (green) is the list of what is waiting. Library (ochre) is what you have watched or read. Topics (purple) gathers things by tag. Find (blue) searches everything. Settings (slate) is your data and this guide. A card you open keeps the colour of the tab you opened it from."),
+        ("Library",
+         "Tick Watched or Read and a card moves here, keeping its marks and notes. It is grouped into this week, this month and earlier; With notes shows only the cards you wrote something about. Back to the list returns a card to Watch."),
+        ("Topics",
+         "Give a card a tag (on its page, or with the tag button on the card) and the tag becomes a topic. A topic shows what is still waiting and what is already in the Library. Linking notes to each other comes in a later version."),
+        ("Find",
+         "Type two letters or more. Find looks in titles, channels, tags, your marks and your notes, and ignores accents. Each result says where it found the words — a mark shows its time. Tap a result to open it."),
         ("A card's own page",
          "Tap a card's picture or title. A video plays right on the page (a few videos only play on YouTube; then there is a button for that). Under it you can mark moments, write notes and set tags."),
         ("Marks",
@@ -73,6 +101,6 @@ enum Guide {
         ("Three months",
          "A video that has waited three months without being kept gets an amber edge and two buttons: Keep, or the bin. The bin can be undone for a few seconds; on the other device the card simply disappears."),
         ("Your data",
-         "Your data shows where the list lives, imports the old app's watchlater.json, and writes a backup wherever you choose. Nothing about your list ever leaves your devices and your iCloud."),
+         "Settings shows where the list lives, imports the old app's watchlater.json, and writes a backup wherever you choose. Nothing about your list ever leaves your devices and your iCloud."),
     ]
 }

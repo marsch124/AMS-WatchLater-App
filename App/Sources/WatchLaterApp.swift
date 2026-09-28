@@ -8,7 +8,7 @@ struct WatchLaterApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            MainView()
                 .environmentObject(store)
                 .onOpenURL { url in handle(url) }
                 .onChange(of: phase) { _, now in

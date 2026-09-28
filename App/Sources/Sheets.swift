@@ -153,56 +153,6 @@ struct PlanSheet: View {
     private func make() { picks = Planner.plan(minutes: budget, from: pool) }
 }
 
-// MARK: - Your data
-
-struct DataSheet: View {
-    @EnvironmentObject private var store: Store
-    @State private var importing = false
-    @State private var exporting = false
-    @State private var report: String?
-
-    var body: some View {
-        SheetFrame(title: "Your data", closeIdentifier: "wl-data-close") {
-            row("Where the list lives", store.syncPlace)
-            row("Waiting", "\(store.library.open.count) videos · \(Clock.total(store.library.open))")
-            row("Watched", "\(store.library.live.filter { $0.watchedAt != nil }.count)")
-            row("Safety copies", "\(store.backups().count), beside the list")
-
-            Text("From the old app").font(Type.pill).foregroundStyle(Paper.ink).padding(.top, 8)
-            Text("Import brings every card from the web app's watchlater.json — it is in the AMS WatchLater folder under App Development. Cards already here are left alone.")
-                .font(Type.body).foregroundStyle(Paper.inkSoft)
-            HStack(spacing: 8) {
-                GoButton(title: "Import watchlater.json", identifier: "wl-import") { importing = true }
-                QuietButton(identifier: "wl-export") { exporting = true } label: { Text("Back up now") }
-            }
-            if let report {
-                Text(report).font(Type.body).foregroundStyle(Paper.accentInk).accessibilityIdentifier("wl-data-report")
-            }
-        }
-        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
-            guard case .success(let url) = result else { return }
-            let ok = url.startAccessingSecurityScopedResource()
-            defer { if ok { url.stopAccessingSecurityScopedResource() } }
-            guard let data = try? Data(contentsOf: url) else { report = "Could not read that file."; return }
-            let n = store.importOld(data)
-            report = n < 0 ? "That is not a WatchLater file." : (n == 0 ? "Nothing new in it — every card was already here." : "Imported \(n) videos.")
-        }
-        .fileExporter(isPresented: $exporting, document: JSONFile(data: store.exportData()),
-                      contentType: .json, defaultFilename: "watchlater-\(ISO8601DateFormatter.day.string(from: Date()))") { r in
-            if case .success = r { report = "Backup written." }
-        }
-    }
-
-    private func row(_ k: String, _ v: String) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(k).font(Type.body).foregroundStyle(Paper.inkSoft)
-            Spacer()
-            Text(v).font(Type.body).foregroundStyle(Paper.ink).multilineTextAlignment(.trailing)
-        }
-        .padding(.vertical, 4)
-    }
-}
-
 struct JSONFile: FileDocument {
     static var readableContentTypes: [UTType] { [.json] }
     var data: Data
@@ -214,31 +164,48 @@ struct JSONFile: FileDocument {
 // MARK: - How it works / What is new
 
 struct GuideSheet: View {
-    var body: some View {
-        SheetFrame(title: "AMS WatchLater", closeIdentifier: "wl-guide-close") {
-            Text("Version \(Guide.appVersion) · build \(Guide.build)").font(Type.body).foregroundStyle(Paper.inkSoft)
+    let page: SettingsTab.Page
 
-            Text("How it works").font(.system(size: 20, weight: .semibold)).foregroundStyle(Paper.ink).padding(.top, 6)
-            ForEach(Guide.howItWorks, id: \.0) { h, body in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(h).font(Type.pill).foregroundStyle(Paper.ink)
-                    Text(body).font(Type.body).foregroundStyle(Paper.inkSoft)
+    var body: some View {
+        switch page {
+        case .how:
+            SheetFrame(title: "How it works", closeIdentifier: "wl-guide-close") {
+                ForEach(Guide.howItWorks, id: \.0) { h, body in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(h).font(.system(size: 17, weight: .semibold)).foregroundStyle(Paper.accentInk)
+                        Text(body).font(Type.body).foregroundStyle(Paper.ink)
+                    }
+                    .padding(.bottom, 4)
                 }
             }
-
-            Text("What is new").font(.system(size: 20, weight: .semibold)).foregroundStyle(Paper.ink).padding(.top, 10)
-            ForEach(Guide.releases) { r in
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack { Text("v\(r.version)").font(Type.pill).foregroundStyle(Paper.accentInk); Text(r.date).font(Type.small).foregroundStyle(Paper.inkSoft) }
-                    Text(r.headline).font(Type.pill).foregroundStyle(Paper.ink)
-                    ForEach(r.lines, id: \.self) { l in
-                        HStack(alignment: .top, spacing: 8) {
-                            Circle().fill(Paper.accent).frame(width: 6, height: 6).padding(.top, 7)
-                            Text(l).font(Type.body).foregroundStyle(Paper.inkSoft)
+        case .new:
+            SheetFrame(title: "What's new", closeIdentifier: "wl-guide-close") {
+                Text("Version \(Guide.appVersion) · build \(Guide.build)").font(Type.body).foregroundStyle(Paper.inkSoft)
+                ForEach(Guide.releases) { r in
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("v\(r.version)").font(Type.pill).foregroundStyle(Paper.accentInk)
+                            Text(r.date).font(Type.small).foregroundStyle(Paper.inkSoft)
+                        }
+                        Text(r.headline).font(.system(size: 17, weight: .semibold)).foregroundStyle(Paper.ink)
+                        ForEach(r.lines, id: \.self) { l in
+                            HStack(alignment: .top, spacing: 8) {
+                                Circle().fill(Paper.accent).frame(width: 6, height: 6).padding(.top, 7)
+                                Text(l).font(Type.body).foregroundStyle(Paper.ink)
+                            }
                         }
                     }
+                    .padding(14).modifier(CardFrame())
                 }
-                .padding(14).modifier(CardFrame())
+            }
+        case .share:
+            SheetFrame(title: "Save from the phone", closeIdentifier: "wl-guide-close") {
+                ForEach(Guide.shareSteps, id: \.self) { step in
+                    HStack(alignment: .top, spacing: 10) {
+                        Circle().fill(Paper.accent).frame(width: 8, height: 8).padding(.top, 7)
+                        Text(step).font(.system(size: 17)).foregroundStyle(Paper.ink)
+                    }
+                }
             }
         }
     }

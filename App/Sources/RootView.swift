@@ -1,21 +1,19 @@
 import SwiftUI
 import WatchLaterCore
 
-/// The one screen: what to watch, in the time you have.
-struct RootView: View {
+/// The Watch tab: what is waiting, in the time you have. (Before 0.3 this was
+/// the whole app; Library, search and Your data now have tabs of their own.)
+struct WatchView: View {
     @EnvironmentObject private var store: Store
     @State private var shelf = Shelf()
     @State private var picked = Set<String>()          // ids ticked for a bulk action
     @State private var plan: [Video]? = nil
     @State private var sheet: Sheet?
     @State private var showSorts = false
-    @State private var opened: Opened?
-
-    /// The card whose page is open.
-    struct Opened: Identifiable { let id: String }
+    @State private var opened: OpenItem?
 
     enum Sheet: Identifiable {
-        case add, plan, data, guide
+        case add, plan
         var id: Int { hashValue }
     }
 
@@ -26,7 +24,7 @@ struct RootView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Paper.bg.ignoresSafeArea()
+            TabBackground()
 
             VStack(spacing: 0) {
                 ScrollView {
@@ -46,27 +44,18 @@ struct RootView: View {
                 .scrollDismissesKeyboard(.interactively)
             }
 
-            VStack(spacing: 10) {
-                if let t = store.toast {
-                    ToastView(toast: t) { store.toast = nil }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                addBar
-            }
-            .padding(.bottom, 8)
+            addBar.padding(.bottom, 10)
         }
-        .animation(.easeOut(duration: 0.2), value: store.toast)
         .sheet(item: $sheet) { which in
-            switch which {
-            case .add:   AddSheet()
-            case .plan:  PlanSheet(pool: shelf.apply(to: store.library)) { plan = $0; sheet = nil }
-            case .data:  DataSheet()
-            case .guide: GuideSheet()
+            Group {
+                switch which {
+                case .add:   AddSheet()
+                case .plan:  PlanSheet(pool: shelf.apply(to: store.library)) { plan = $0; sheet = nil }
+                }
             }
+            .environment(\.theme, .watch).tint(TabTheme.watch.accent)
         }
-        .sheet(item: $opened) { o in
-            ItemView(itemID: o.id).environmentObject(store)
-        }
+        .itemSheet($opened)
         .onChange(of: store.library) { _, _ in
             // A card that vanished from the list leaves the selection too.
             picked = picked.filter { id in store.library.live.contains { $0.id == id } }
@@ -76,21 +65,11 @@ struct RootView: View {
     // MARK: Header
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text("Watch later").font(Type.title).foregroundStyle(Paper.ink)
-            Spacer()
+        ScreenTitle(title: "Watch", identifier: "wl-screen-watch") {
             let open = store.library.open
             Text("\(open.count) · \(Clock.total(open))")
-                .font(Type.small).foregroundStyle(Paper.inkSoft)
+                .font(Type.small).foregroundStyle(Paper.accentInk)
                 .accessibilityIdentifier("wl-tally")
-            Button { sheet = .guide } label: {
-                Text("v\(Guide.appVersion)").font(Type.small).foregroundStyle(Paper.inkSoft)
-                    .padding(.horizontal, 9).padding(.vertical, 3)
-                    .overlay(Capsule().strokeBorder(Paper.line))
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("wl-version")
-            QuietButton(identifier: "wl-data") { sheet = .data } label: { Text("Your data") }
         }
     }
 
@@ -116,34 +95,16 @@ struct RootView: View {
             }
             if together > 0 {
                 Pill(title: "Together", count: together, on: shelf.togetherOnly,
-                     tint: Paper.pair, soft: Paper.pairSoft, inkOn: Paper.pair, identifier: "wl-together") {
+                     tint: AnyShapeStyle(Paper.pair), soft: AnyShapeStyle(Paper.pairSoft),
+                     inkOn: AnyShapeStyle(Paper.pair), identifier: "wl-together") {
                     shelf.togetherOnly.toggle(); plan = nil
                 }
-            }
-            Pill(title: "Library", count: store.library.live.filter { $0.watchedAt != nil }.count,
-                 on: shelf.showWatched, identifier: "wl-library") {
-                shelf.showWatched.toggle(); shelf.shortsOnly = false; plan = nil
             }
         }
     }
 
     private var arrange: some View {
         FlowRow(spacing: 8) {
-            HStack(spacing: 6) {
-                SearchMark().foregroundStyle(Paper.inkSoft)
-                TextField("Search", text: $shelf.search)
-                    .textFieldStyle(.plain).font(Type.body).foregroundStyle(Paper.ink)
-                    .frame(minWidth: 120, maxWidth: 200)
-                    .accessibilityIdentifier("wl-search")
-                    .onChange(of: shelf.search) { _, _ in plan = nil }
-                if !shelf.search.isEmpty {
-                    Button { shelf.search = "" } label: { CrossMark(size: 14).foregroundStyle(Paper.inkSoft) }
-                        .buttonStyle(.plain).accessibilityIdentifier("wl-search-clear")
-                }
-            }
-            .padding(.horizontal, 12).padding(.vertical, 7)
-            .background(Capsule().fill(Paper.card).overlay(Capsule().strokeBorder(Paper.line)))
-
             Menu {
                 ForEach(Sort.allCases) { s in
                     Button(s.title) { shelf.sort = s }
@@ -209,7 +170,7 @@ struct RootView: View {
             }
         }
         .padding(14)
-        .modifier(CardFrame(tint: Paper.pair))
+        .modifier(CardFrame(tint: AnyShapeStyle(Paper.pair)))
         .accessibilityIdentifier("wl-together-bar")
     }
 
@@ -233,7 +194,7 @@ struct RootView: View {
             }
         }
         .padding(14)
-        .modifier(CardFrame(tint: Paper.accent))
+        .modifier(CardFrame(tint: AnyShapeStyle(Paper.accent)))
     }
 
     private var pickedBar: some View {
@@ -279,7 +240,7 @@ struct RootView: View {
                                  togglePick: { if picked.contains(v.id) { picked.remove(v.id) } else { picked.insert(v.id) } },
                                  pickChannel: { shelf.channel = v.channel; plan = nil },
                                  pickTag: { shelf.tag = $0; plan = nil },
-                                 open: { opened = Opened(id: v.id) })
+                                 open: { opened = OpenItem(id: v.id) })
                     }
                 }
             }
@@ -289,12 +250,9 @@ struct RootView: View {
     private var emptyNote: some View {
         VStack(spacing: 10) {
             PlayMark(size: 44, weight: 3).foregroundStyle(Paper.accent)
-            Text(shelf.showWatched ? "The Library is empty so far."
-                 : store.library.open.isEmpty ? "Nothing waiting." : "Nothing fits here.")
-                .font(.system(size: 20, weight: .semibold)).foregroundStyle(Paper.ink)
-            Text(shelf.showWatched
-                 ? "What you have watched or read lands here, with its marks and notes."
-                 : store.library.open.isEmpty
+            Text(store.library.open.isEmpty ? "Nothing waiting." : "Nothing fits here.")
+                .font(.system(size: 20, weight: .semibold)).foregroundStyle(Paper.accentInk)
+            Text(store.library.open.isEmpty
                  ? "Save a video, an article or any page with Add, or share one to WatchLater."
                  : "Try a longer slot, or Everything.")
                 .font(Type.body).foregroundStyle(Paper.inkSoft).multilineTextAlignment(.center)

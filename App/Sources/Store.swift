@@ -93,11 +93,24 @@ final class Store: ObservableObject {
                             kind: .article)
         article.id = "seed-article"
         article.blurb = "What a night of sleep does for memory, and the three habits that help most."
+        fifteen.tags = ["Raycast"]
+        article.tags = ["Brain & body"]
+        var fifty = v("seedfifty00", "Fifty minutes of brain science", "Anders Hansen", 50 * 60, daysAgo: 100)
+        fifty.tags = ["Brain & body"]
+        // One thing already in the Library, with marks and a note, so the
+        // Library, Topics and Find tabs have something to show in a test run.
+        var lecture = v("seedlecture", "Basics of Biology · Lecture 1", "Peterson Academy", 61 * 60, daysAgo: 6)
+        lecture.watchedAt = Date().addingTimeInterval(-86_400)
+        lecture.tags = ["Brain & body"]
+        lecture.marks = [Mark(seconds: 1390, text: "Insulin is the master switch for storing energy"),
+                         Mark(seconds: 2210, text: "Mitochondria: why cold and exercise help")]
+        lecture.body = "Ask about insulin and sleep."
         return Library(items: [
             v("seedfour000", "Four minutes on knots", "Rope Club", 4 * 60, daysAgo: 0),
             fifteen,
             article,
-            v("seedfifty00", "Fifty minutes of brain science", "Anders Hansen", 50 * 60, daysAgo: 100),
+            fifty,
+            lecture,
         ])
     }
 
