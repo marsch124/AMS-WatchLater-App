@@ -49,6 +49,12 @@ final class WatchLaterUITests: XCTestCase {
         while Date() < deadline {
             if let e = element(app, id) {
                 if e.isHittable { e.tap(); return }
+                // The tab bar never scrolls; the Mac calls its buttons "not
+                // hittable" anyway (CI 2026-09-28), so click where they are.
+                if id.hasPrefix("tab-") {
+                    e.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+                    return
+                }
                 if scrolls < 12 {
                     let scroll = app.scrollViews.firstMatch
                     if scroll.exists { scroll.swipeUp(velocity: .slow) } else { app.swipeUp() }
