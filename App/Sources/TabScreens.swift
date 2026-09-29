@@ -482,7 +482,12 @@ struct FindTab: View {
 
 struct SettingsTab: View {
     @EnvironmentObject private var store: Store
-    @State private var picking: Picking?
+    /// What the open file window is for. Kept apart from "is it showing":
+    /// the window clears that the moment it closes — BEFORE it hands over the
+    /// choice — and build 15 then took his vault folder for a backup file
+    /// ("Could not read that file", 2026-09-29).
+    @State private var pickFor: Picking = .backup
+    @State private var picking = false
     @State private var saving: Saving?
     @State private var report: String?
     @State private var page: Page?
@@ -510,7 +515,7 @@ struct SettingsTab: View {
                             value: "\(store.backups().count) safety cop\(store.backups().count == 1 ? "y" : "ies")",
                             identifier: "wl-export") { saving = .backup }
                 SettingsRow(art: GlyphArt.importIn, title: "Import watchlater.json", value: "backup or old app",
-                            identifier: "wl-import") { picking = .backup }
+                            identifier: "wl-import") { pick(.backup) }
             }
             if let report {
                 Text(report).font(Type.body).foregroundStyle(Paper.accentInk).accessibilityIdentifier("wl-data-report")
@@ -519,15 +524,15 @@ struct SettingsTab: View {
             SectionTitle(text: "Obsidian and other apps")
             SettingsGroup {
                 SettingsRow(art: GlyphArt.book, title: "Obsidian vault", value: vaultName ?? "Choose…",
-                            identifier: "wl-set-vault") { picking = .vault }
+                            identifier: "wl-set-vault") { pick(.vault) }
                 SettingsRow(art: GlyphArt.exportOut, title: "Export to Obsidian", value: "a note per card",
                             identifier: "wl-set-obsidian") {
-                    if vaultName == nil { picking = .vault } else { store.exportToObsidian() }
+                    if vaultName == nil { pick(.vault) } else { store.exportToObsidian() }
                 }
                 SettingsRow(art: GlyphArt.exportOut, title: "Spreadsheet", value: "CSV for Numbers or Excel",
                             identifier: "wl-set-csv") { saving = .spreadsheet }
                 SettingsRow(art: GlyphArt.importIn, title: "Add links from a file", value: "text or CSV",
-                            identifier: "wl-set-links") { picking = .links }
+                            identifier: "wl-set-links") { pick(.links) }
             }
             if let r = store.obsidianReport {
                 VStack(alignment: .leading, spacing: 4) {
@@ -561,10 +566,8 @@ struct SettingsTab: View {
         .sheet(item: $page) { p in
             GuideSheet(page: p).environment(\.theme, .settings).tint(TabTheme.settings.accent)
         }
-        .fileImporter(isPresented: Binding(get: { picking != nil }, set: { if !$0 { picking = nil } }),
-                      allowedContentTypes: pickerTypes) { result in
-            let mode = picking
-            picking = nil
+        .fileImporter(isPresented: $picking, allowedContentTypes: pickerTypes) { result in
+            let mode = pickFor
             guard case .success(let url) = result else { return }
             switch mode {
             case .vault:
@@ -575,7 +578,7 @@ struct SettingsTab: View {
                 } catch {
                     report = "That folder cannot be used: \(error.localizedDescription)"
                 }
-            case .backup, .links, .none:
+            case .backup, .links:
                 let ok = url.startAccessingSecurityScopedResource()
                 defer { if ok { url.stopAccessingSecurityScopedResource() } }
                 guard let data = try? Data(contentsOf: url) else { report = "Could not read that file."; return }
@@ -597,11 +600,17 @@ struct SettingsTab: View {
         }
     }
 
+    private func pick(_ what: Picking) {
+        report = nil
+        pickFor = what
+        picking = true
+    }
+
     private var pickerTypes: [UTType] {
-        switch picking {
+        switch pickFor {
         case .vault: return [.folder]
         case .links: return [.plainText, .commaSeparatedText, .text]
-        default: return [.json]
+        case .backup: return [.json]
         }
     }
 }
